@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+</head>
+<body>
+
+<p>Choose reference file (a fasta file)</p>
+<input id="reference" type="file">
+
+
+<p>Choose demultiplexed fastaq files</p>
+<input id="fastq" type="file" multiple>
+
+<p id="demo1"></p>
+<p id="demoRef"></p>
+<p id="demoFq"></p>
+
+<button onclick="analyze()">Created bam files and summary</button>
+
+
+<script src="./aioli/latest/aioli.js"></script>
+<script>
+let bwa = new Aioli("bwa2/latest");
+// Initialize bwa and output the version
+bwa
+.init()
+.then(() => bwa.exec("index"))
+.then(d => console.log(d.stdout, "ERRRRR", d.stderr));
+
+
+// When a user selects a .sam file from their computer,
+// run `bwa view -q20` on the file
+function loadFiles(event)
+{
+    // document.getElementById("demo1").innerHTML = "";
+    // var filenames = [];
+    var files = event.target.files;
+    for (var i = 0, f; f = files[i]; i++) {
+        loadSingleFile(f);
+        // filenames.push(f.name);
+        document.getElementById("demo1").innerHTML += f.name + "\t";
+    }
+    // return(filenames);
+}
+document.getElementById("reference").addEventListener("change", loadFiles, false);
+document.getElementById("demoRef").innerHTML = document.getElementById("demo1").innerHTML;
+document.getElementById("fastq").addEventListener("change", loadFiles, false);
+document.getElementById("demoFq").innerHTML = document.getElementById("demo1").innerHTML;
+
+// test wethere 2 init will change things
+function loadSingleFile(file)
+{
+    Aioli
+    .mount(file) // First mount the file
+    .then((f) => {
+        console.log(f.path, f.name);
+        return bwa.symlink(f.path);
+        })
+    .then((f) => {
+        return bwa.ls("/bwa2/example");
+        })
+    .then(d => console.log(d));
+}
+
+// When a user selects a .sam file from their computer,
+// run `bwa view -q20` on the file
+function loadFqFiles(event)
+{
+    document.getElementById("demoFq").innerHTML = "";
+    // var filenames = [];
+    var files = event.target.files;
+    for (var i = 0, f; f = files[i]; i++) {
+        loadSingleFile(f);
+        // filenames.push(f.name);
+        document.getElementById("demoFq").innerHTML += f.name + "\t";
+    }
+    // bwa.ls("/bwa2/example").then(d => console.log(d));
+    // return(filenames);
+}
+
+document.getElementById("fastq").addEventListener("change", loadFqFiles, false);
+// document.getElementById("demoFq").innerHTML = document.getElementById("demo1").innerHTML;
+// for writing stdout to file
+function stdInfo(name, content) {
+  this.name = name;
+  this.content= content;
+}
+// test wethere 2 init will change things
+function loadSingleFile(file)
+{
+    return Aioli
+    .mount(file); // First mount the file
+    // .then((f) => {
+    //     console.log(f.path, f.name);
+    //     return bwa.symlink(f.path);
+    //     });
+    // .then((f) => {
+    //     return bwa.ls("/bwa2/example");
+    //     })
+    // .then(d => console.log(d));
+}
+</script>
+<script src="FileSaver.min.js"></script>
+
+
+</body>
+</html>
+

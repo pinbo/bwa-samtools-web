@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+
+<p>Choose demultiplexed fastaq files</p>
+<input id="fastq" type="file" multiple>
+
+<p id="demo1"></p>
+<p id="demoRef"></p>
+<p id="demoFq"></p>
+
+<button onclick="downloadsam()"> Download a sam file to check</button>
+
+
+<script src="./aioli/latest/aioli.js"></script>
+<script>
+
+let samtools = new Aioli("samtools/latest");
+// Initialize samtools and output the version
+samtools
+.init()
+.then(() => samtools.exec("--version"))
+.then(d => console.log("Samtools: ", d.stdout, "ERRRRR", d.stderr));
+
+// When a user selects a .sam file from their computer,
+// run `bwa view -q20` on the file
+function loadFqFiles(event)
+{
+    document.getElementById("demoFq").innerHTML = "";
+    // var filenames = [];
+    var files = event.target.files;
+    for (var i = 0, f; f = files[i]; i++) {
+        loadSingleFile(f);
+        // filenames.push(f.name);
+        document.getElementById("demoFq").innerHTML += f.name + "\t";
+    }
+    // bwa.ls("/bwa2/example").then(d => console.log(d));
+    // return(filenames);
+}
+
+document.getElementById("fastq").addEventListener("change", loadFqFiles, false);
+// document.getElementById("demoFq").innerHTML = document.getElementById("demo1").innerHTML;
+// for writing stdout to file
+function stdInfo(name, content) {
+  this.name = name;
+  this.content= content;
+}
+// test wethere 2 init will change things
+function loadSingleFile(file)
+{
+    return Aioli
+    .mount(file); // First mount the file
+    // .then((f) => {
+    //     console.log(f.path, f.name);
+    //     return bwa.symlink(f.path);
+    //     });
+    // .then((f) => {
+    //     return bwa.ls("/bwa2/example");
+    //     })
+    // .then(d => console.log(d));
+}
+// Move files from bwa worker to samtools worker
+async function moveFile (oldpath, newpath) { // 
+    // Aioli.transfer("/bwa2/example/"+filename, "/samtools/examples/"+filename, Aioli.workers[0], Aioli.workers[1]); // bwa is loaded first (0), samtools the 2nd (1)
+    await Aioli.transfer(oldpath, newpath, Aioli.workers[0], Aioli.workers[1]); // bwa is loaded first (0), samtools the 2nd (1)
+    return newpath; // /samtools/examples/1.sam
+}
+
+// convert sam files to bam files
+async function makeBam (samfile){// /samtools/examples/1.sam
+    let ff = samfile.split("/")
+    let out = "/samtools/examples/" + ff[ff.length-1].replace(".sam", ".bam");
+    await samtools.exec("view -Sb " + samfile + " -o " + out)
+    .then((d) => console.log(d.stdout, "ERRRRRRR", d.stderr));
+    // .then(() => samtools.rm(samfile))
+    // .then(d => console.log(d));
+    return out; // /samtools/examples/1.bam
+}
+// convert sam files to bam files
+async function sortBam (bamfile){// /samtools/examples/1.bam
+    let out = bamfile.replace(".bam", ".sorted.bam");
+    await samtools.exec("sort " + bamfile + " -o " + out)
+    .then((d) => console.log(d.stdout, "ERRRRRRR", d.stderr));
+    // .then(() => samtools.rm(bamfile))
+    // .then(d => console.log(d));
+    return out; // /samtools/examples/1.sorted.bam
+}
+// index sorted bam
+async function indexBam (bamfile){// /samtools/examples/1.sorted.bam
+    let out = bamfile + ".bai";
+    await samtools.exec("index " + bamfile)
+    .then((d) => console.log(d.stdout, "ERRRRRRR", d.stderr));
+    return out; // /samtools/examples/1.sorted.bam.bai
+}
+
+//download a sam to check
+function downloadsam (path){
+    let mm = path.split("/");
+    let filename = mm[mm.length - 1];
+    bwa.download(path) //"/bwa2/example/out_1.sam"
+    .then(d => saveAs(d, filename));
+}
+
+
+
+</script>
+
+
+<script src="FileSaver.min.js"></script>
+
+
+</body>
+</html>
+
