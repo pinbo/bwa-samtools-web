@@ -52,11 +52,11 @@ Module = {
     },
 
     // Setup print functions to store stdout/stderr based on id
-    // print: text => STDOUT[MSG_UUID] += `${text}\n`,
-    // printErr: text => STDERR[MSG_UUID] += `${text}\n`
+     print: text => STDOUT[MSG_UUID] += `${text}\n`,
+     printErr: text => STDERR[MSG_UUID] += `${text}\n`
     // print: text => console.log(text),
-    print: text => FS.writeFile("/bwa2/examples/mystdout", text),
-    printErr: text => console.log(text)
+    // print: text => FS.writeFile("/bwa2/examples/mystdout", text),
+    // printErr: text => console.log(text)
 }
 
 
@@ -161,21 +161,34 @@ API = {
     // -------------------------------------------------------------------------
     mount: (id, file) => {
         // Support File objects
+        // console.log(file.name);
+        // console.log(file.source);
+        // console.log(file.file);
+        // console.log(file.file instanceof File);
+        // console.log(file.file instanceof Blob);
+        // file.path = DIR_DATA_FILES + "/" + file.name;
+        console.log("File path " + file.path);
         if(file.source == "file")
         {
-            // Unmount & remount all files (can only mount a folder once)
-            try {
-                FS.unmount(DIR_DATA_FILES);
-            } catch(e) {}
-            FILES.push(file);
+        //     // Unmount & remount all files (can only mount a folder once)
+        //     try {
+        //         FS.unmount(DIR_DATA_FILES);
+        //     } catch(e) {}
+        //     FILES.push(file);
 
-            // Handle File and Blob objects
-            FS.mount(WORKERFS, {
-            // FS.mount(MEMFS, { //make by JZ
-                files: FILES.filter(f => f.file instanceof File).map(f => f.file),
-                blobs: FILES.filter(f => f.file instanceof Blob).map(f => ({ name: f.name, data: f.file }))
-            }, DIR_DATA_FILES);
-            // }, "/bwa2/examples");
+        //     // Handle File and Blob objects
+        //     // FS.mount(WORKERFS, {
+        //         files: FILES.filter(f => f.file instanceof File).map(f => f.file),
+        //         blobs: FILES.filter(f => f.file instanceof Blob).map(f => ({ name: f.name, data: f.file }))
+        //     }, DIR_DATA_FILES);
+            // FS.writeFile(file.path, file.file);
+            let reader= new FileReader();
+            reader.addEventListener('loadend', function(){
+                let result=reader.result;
+                const uint8_view = new Uint8Array(result);
+                FS.writeFile(file.path, uint8_view);
+            });
+            reader.readAsArrayBuffer(file.file);
         }
 
         // Support URLs
