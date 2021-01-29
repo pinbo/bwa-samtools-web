@@ -14,6 +14,14 @@
 
 <button onclick="downloadsam()"> Download a sam file to check</button>
 
+<input type="file" id="file-selector" multiple>
+<script>
+  const fileSelector = document.getElementById('file-selector');
+  fileSelector.addEventListener('change', (event) => {
+    const fileList = event.target.files;
+    console.log(fileList[0]);
+  });
+</script>
 
 <script src="./aioli/latest/aioli.js"></script>
 <script>
