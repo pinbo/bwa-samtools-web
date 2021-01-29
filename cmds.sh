@@ -1,42 +1,18 @@
-samtools.exec("mem -o /bwa2/example/1.sam /bwa2/example/references.fa /bwa2/example/2_R1_001.fastq.gz /bwa2/example/2_R2_001.fastq.gz")
-    .then((d) => console.log(d.stdout, d.stderr));
-    
-    
-Usage: samtools index [-bc] [-m INT] <in.bam> [out.index]
-Options:
-  -b       Generate BAI-format index for BAM files [default]
-  -c       Generate CSI-format index for BAM files
-  -m INT   Set minimum interval size for CSI indices to 2^INT [14]
-  -@ INT   Sets the number of threads [none]
+##### My summary
+1. seems only preloaded folder can be written by the programs.
+2. Only the prloaded folder can be transfered between workers (maybe only the preload folder can be the target)
+3. Samtools problem: samtools sort did not sort (may be the print is not synchronous), so the sorted bam cannot be indexed. Good thing is it can use the -o option to write to disk
+4. BWA problem: bwa mem not working, only process the reference but not the fastq files; bwa aln -f to file not working and I cannot redirec the binary output to files. Seems the stdout of the filesystme only print text well.
 
 
-samtools index -c /data/out_99.sorted.bam /samtools/examples/out_99.sorted.bam.csi
-ls /samtools/examples
 
-samtools.exec("mem")
-    .then((d) => console.log(d.stdout, d.stderr));
-    
-    
-samtools.exec("mem -o /bwa2/example/out1.sam /bwa2/example/references.fa /bwa2/example/2_R1_001.fastq.gz /bwa2/example/2_R2_001.fastq.gz")
-    .then((d) => console.log(d.stdout, "ERRRRR", d.stderr));
-    
-
-
-bwa.ls("/bwa2/example").then(d => console.log(d))
-
-samtools.exec("mem /bwa2/example/references.fa /bwa2/example/2_R1_001.fastq.gz /bwa2/example/2_R2_001.fastq.gz")
-    .then((d) => console.log(d.stdout));
-    
-    
+##### samtools
+# samtools sort: give unsorted output possibly due to the asyn javascript writing.    
 let samtools = new Aioli("samtools/latest");
 samtools
 .init()
 .then(() => samtools.ls("/"))
 .then(d => console.log(d));
-
-# not working for /data folder
-Aioli.transfer("/data/references.fa", Aioli.workers[0], Aioli.workers[1]).then(d => console.log(d))
-
 
 
 # below works, seems still only works for preloaded folder
@@ -45,6 +21,9 @@ Aioli.transfer("/samtools/examples/ex1.fa", "/bwa2/example/ex1.fa", Aioli.worker
 # check folder contents
 samtools.ls("/samtools/examples").then(d => console.log(d))
 bwa.ls("/bwa2/examples").then(d => console.log(d))
+
+# check file content with cat
+samtools.ls("/samtools/examples/toy.fa").then(d => console.log(d))
 
 # check whether -o option works
 samtools.exec("view -Sb /samtools/examples/toy.sam -o /samtools/examples/toy.bam")
@@ -73,12 +52,17 @@ bwa.exec("mem /data/references.fa /data/1_R1_001.fastq.gz /data/1_R2_001.fastq.g
 
 
 ## test samtools
-samtools.exec("view -Sb /data/1.sam -o /samtools/examples/1.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+samtools.ls("/samtools/examples").then(d => console.log(d))
+#direct sort to bam
+samtools.exec("sort /samtools/examples/1.sam -o /samtools/examples/1.sorted.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+
+#
+samtools.exec("view -Sb /samtools/examples/1.sam -o /samtools/examples/1.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
 samtools.exec("sort /samtools/examples/1.bam -o /samtools/examples/1.sorted.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
 
 samtools.exec("index /samtools/examples/1.sorted.bam /samtools/examples/1.sorted.bam.bai").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
 
-samtools.download("/samtools/examples/1.sorted.bam").then(d => saveAs(d, "download4.bam"));
+samtools.downloadBinary("/samtools/examples/1.sorted.bam").then(d => saveAs(d, "download.bam"));
 
 samtools.exec("sort /data/1.sam -O=SAM").then((d) => console.log(d.stdout, d.stderr, "End of stderr"))
 
