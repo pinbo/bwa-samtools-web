@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-
+    <meta charset="UTF-8"/>
 </head>
 <body>
 
@@ -49,19 +49,19 @@ document.getElementById("fastq").addEventListener("change", loadFiles, false);
 document.getElementById("demoFq").innerHTML = document.getElementById("demo1").innerHTML;
 
 // test wethere 2 init will change things
-function loadSingleFile(file)
-{
-    Aioli
-    .mount(file) // First mount the file
-    .then((f) => {
-        console.log(f.path, f.name);
-        return bwa.symlink(f.path);
-        })
-    .then((f) => {
-        return bwa.ls("/bwa2/example");
-        })
-    .then(d => console.log(d));
-}
+// function loadSingleFile(file)
+// {
+//     Aioli
+//     .mount(file) // First mount the file
+//     .then((f) => {
+//         console.log(f.path, f.name);
+//         return bwa.symlink(f.path);
+//         })
+//     .then((f) => {
+//         return bwa.ls("/bwa2/example");
+//         })
+//     .then(d => console.log(d));
+// }
 
 // When a user selects a .sam file from their computer,
 // run `bwa view -q20` on the file

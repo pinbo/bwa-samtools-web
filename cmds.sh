@@ -53,8 +53,17 @@ bwa.exec("mem /data/references.fa /data/1_R1_001.fastq.gz /data/1_R2_001.fastq.g
 
 ## test samtools
 samtools.ls("/samtools/examples").then(d => console.log(d))
-#direct sort to bam
-samtools.exec("sort /samtools/examples/1.sam -o /samtools/examples/1.sorted.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+samtools.exec("sort /samtools/examples/1.sam -o /samtools/examples/out1.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+
+samtools.ls("/samtools/examples").then(d => console.log(d))
+
+samtools.exec("index /samtools/examples/out1.bam /data/out1.bam.bai").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+
+samtools.exec("index /data/out2.bam /data/out2.bam.bai").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+
+
+samtools.downloadBinary("/samtools/examples/1.sorted.bam").then(d => saveAs(d, "download.bam"));
+
 
 #
 samtools.exec("view -Sb /samtools/examples/1.sam -o /samtools/examples/1.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
@@ -82,6 +91,15 @@ samtools.exec("sort /data/1.sam")
     })
     .then(d => samtools.write(d));
 
+##
+samtools.setwd("/samtools/examples").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+samtools.ls(".").then(d => console.log(d))
+samtools.exec("sort -o out1.bam 1.sam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+
+samtools.downloadBinary("1.bam").then(d => saveAs(d, "out1.bam"));
+
+
+
 
 ## test bwa
 bwa.ls("/bwa2/examples").then(d => console.log(d))
@@ -90,57 +108,33 @@ bwa.exec("index /bwa2/examples/references.fa").then((d) => console.log(d.stdout,
 bwa.exec("mem /bwa2/examples/references.fa /bwa2/examples/2_S2_L001_R1_001.fastq.gz /bwa2/examples/2_S2_L001_R2_001.fastq.gz")
     .then((d) => console.log(d.stdout, "ERRRRR", d.stderr));
 
-
-bwa.exec("mem /bwa2/examples/references.fa /data/2_S2_L001_R1_001.fastq /data/2_S2_L001_R2_001.fastq")
+bwa.exec("mem -o /data/test.sam /bwa2/examples/references.fa /bwa2/examples/2_S2_L001_R1_001.fastq.gz /bwa2/examples/2_S2_L001_R2_001.fastq.gz")
     .then((d) => console.log(d.stdout, "ERRRRR", d.stderr));
 
 
-bwa.exec("mem -o /bwa2/examples/out2.sam /bwa2/example/references.fa /bwa2/example/2_R1_001.fastq.gz /bwa2/example/2_R2_001.fastq.gz")
-    .then((d) => console.log(d.stdout, "ERRRRR", d.stderr));
 
 
-## use bwa aln
-
-bwa.exec("index /bwa2/examples/references.fa").then((d) => console.log(d.stdout, "ERRRRR", d.stderr)).then(() => bwa.ls("/bwa2/examples")).then(d => console.log(d))
 
 
-bwa.exec("aln -f /bwa2/examples/R1.sai  /bwa2/examples/references.fa /bwa2/examples/2_S2_L001_R1_001.fastq.gz")
-    .then((d) => console.log(d.stdout, "ERRRRR\n", d.stderr));
-bwa.exec("aln -f /bwa2/examples/R2.sai  /bwa2/examples/references.fa /bwa2/examples/2_S2_L001_R2_001.fastq.gz")
-    .then((d) => console.log(d.stdout, "ERRRRR\n", d.stderr));
-
-# no filename
-
-# R1
-
-# single end
-#bwa samse [-n max_occ] [-f out.sam] [-r RG_line] <prefix> <in.sai> <in.fq>
-bwa.exec("samse /bwa2/examples/references.fa /bwa2/examples/R1.sai /bwa2/examples/2_S2_L001_R1_001.fastq.gz")
-    .then((d) => console.log(d.stdout, "ERRRRR", d.stderr));
-    
-
-bwa.exec("aln /bwa2/examples/references.fa /bwa2/examples/2_S2_L001_R1_001.fastq.gz")
+bwa.exec("mem /bwa2/examples/references.fa /bwa2/examples/2_S2_L001_R1_001.fastq.gz /bwa2/examples/2_S2_L001_R2_001.fastq.gz")
     .then(d => {
         console.log(d.stderr, "\nEnd of stderr");
         let file = new stdInfo("/bwa2/examples/R1.sai", d.stdout);
         return file;
     })
     .then(d => bwa.write(d));
+    
+bwa.downloadText("/bwa2/examples/R1.sai").then(d => saveAs(d, "R1.sam"));
 
 
 
-bwa.exec("aln -f /bwa2/examples/R1.sai /bwa2/examples/references.fa /bwa2/examples/2_S2_L001_R1_001.fastq.gz)
-    .then((d) => console.log(d.stdout, "\nERRRRR\n", d.stderr));
+## set working environment
+bwa.setwd("/bwa2/examples/").then(d => console.log(d));
+bwa.exec("index references.fa").then((d) => console.log(d.stdout, "ERRRRR", d.stderr)).then(() => bwa.ls("/bwa2/examples")).then(d => console.log(d));
+bwa.exec("mem -o out2.sam references.fa 2_S2_L001_R1_001.fastq.gz 2_S2_L001_R2_001.fastq.gz")
+    .then((d) => console.log(d.stdout, "ERRRRR", d.stderr));
 
-bwa.ls("/bwa2/examples").then(d => console.log(d))
-
-bwa.downloadBinary("/bwa2/examples/mystdout").then(d => saveAs(d, "R1.sai"));
-
-bwa.download("/dev/stdout").then(d => saveAs(d, "stdout.txt"));
-
-
-
-bwa.exec("mem -o /bwa2/examples/2.sam  /bwa2/examples/references.fa /bwa2/examples/2_S2_L001_R1_001.fastq.gz /bwa2/examples/2_S2_L001_R2_001.fastq.gz")
+bwa.exec("aln -o R1.sai  references.fa 2_S2_L001_R1_001.fastq.gz")
     .then((d) => console.log(d.stdout, "ERRRRR\n", d.stderr));
 
 

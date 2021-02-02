@@ -134,6 +134,10 @@ API = {
     rm: (id, path) => {
         return FS.unlink(path);
     },
+    // added by junli: set working diretory 
+    setwd: (id, path) => {
+        return FS.chdir(path);
+    },
 
     // -------------------------------------------------------------------------
     // Call main function with custom command

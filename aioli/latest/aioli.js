@@ -198,6 +198,10 @@ class Aioli
     rm(file){
         return this.send("rm", file);
     }
+    setwd(path="/")
+    {
+        return this.send("setwd", path);
+    }
 
     // Custom file system operations. For example:
     //   FS.readFile("/file.txt", { encoding: "utf8" });
