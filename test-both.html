@@ -212,14 +212,12 @@ async function bwamem (prefix, reference) {
     let out = wd + "out_" + prefix + ".sam";
     reference = wd + reference;
     // bwa mem
-    let cmd = ["mem", reference, R1, R2].join(' ');
+    let cmd = ["mem", reference, R1, R2, out].join(' '); // I modifed fastmap.c to use the 4th arguments as output
     console.log(cmd);
     let std = await bwa.exec(cmd);
     console.log(std.stderr);
-    let file = new stdInfo(out, std.stdout);
-    await bwa.write(file);
-    console.log("Finished writing");
-    return out; // /bwa2/example/1.sam
+    console.log("Finished writing ", out);
+    // return out; 
 }
 
 </script>

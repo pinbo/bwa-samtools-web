@@ -15,7 +15,7 @@ FILES = [];
 DIR_DATA_FILES = "/data";
 DIR_DATA_URLS = "/urls";
 
-// function to remove elemnt by value from an arry
+// JZ: function to remove elemnt by value from an arry
 function arrayRemove(arr, value) { 
     return arr.filter(function(ele){ 
         return ele != value; 
