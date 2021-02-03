@@ -46,4 +46,4 @@ emcc -O2 samtools.o -o ../build/samtools.html -s EXTRA_EXPORTED_RUNTIME_METHODS=
 
 ## working one: remove pthread_create functions in bam_sort.c
 emmake make CC=emcc AR=emar CFLAGS="-g -Wall -O2"
-emcc -O2 samtools.o -o ../build/samtools.html -s EXTRA_EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1 -s ERROR_ON_UNDEFINED_SYMBOLS=0 --preload-file examples/@/samtools/examples/
+emcc -O2 samtools.o -o ../build/samtools.html -s FORCE_FILESYSTEM=1 -s EXTRA_EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1 -s ERROR_ON_UNDEFINED_SYMBOLS=0 -lworkerfs.js --preload-file examples/@/samtools/examples/

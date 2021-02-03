@@ -15,6 +15,12 @@ FILES = [];
 DIR_DATA_FILES = "/data";
 DIR_DATA_URLS = "/urls";
 
+// function to remove elemnt by value from an arry
+function arrayRemove(arr, value) { 
+    return arr.filter(function(ele){ 
+        return ele != value; 
+    });
+}
 // Initialization -- two conditions for this worker to be ready:
 //   1) Got UUID from Main Thread that it sent with the "init" message
 //   2) Wasm module is initialized
@@ -54,9 +60,6 @@ Module = {
     // Setup print functions to store stdout/stderr based on id
      print: text => STDOUT[MSG_UUID] += `${text}\n`,
      printErr: text => STDERR[MSG_UUID] += `${text}\n`
-    // print: text => console.log(text),
-    // print: text => FS.writeFile("/bwa2/examples/mystdout", text),
-    // printErr: text => console.log(text)
 }
 
 
@@ -117,7 +120,7 @@ API = {
     // added by junli
     symlink: (id, oldpath) => {
     // symlink: (id, path) => {
-        let newpath = oldpath.replace("/data/", "/bwa2/example/");
+        let newpath = oldpath.replace("/data/", "/bwa2/examples/");
         FS.symlink(oldpath, newpath);
         return newpath;
         // return FS.readdir(path);
@@ -174,18 +177,18 @@ API = {
         console.log("File path " + file.path);
         if(file.source == "file")
         {
-        //     // Unmount & remount all files (can only mount a folder once)
-        //     try {
-        //         FS.unmount(DIR_DATA_FILES);
-        //     } catch(e) {}
-        //     FILES.push(file);
+            // Unmount & remount all files (can only mount a folder once)
+            // try {
+            //     FS.unmount(DIR_DATA_FILES);
+            // } catch(e) {}
+            // FILES.push(file);
+            // // Handle File and Blob objects
+            // FS.mount(WORKERFS, {
+            //     files: FILES.filter(f => f.file instanceof File).map(f => f.file),
+            //     blobs: FILES.filter(f => f.file instanceof Blob).map(f => ({ name: f.name, data: f.file }))
+            // }, DIR_DATA_FILES);
 
-        //     // Handle File and Blob objects
-        //     // FS.mount(WORKERFS, {
-        //         files: FILES.filter(f => f.file instanceof File).map(f => f.file),
-        //         blobs: FILES.filter(f => f.file instanceof Blob).map(f => ({ name: f.name, data: f.file }))
-        //     }, DIR_DATA_FILES);
-            // FS.writeFile(file.path, file.file);
+            // junli added for adding a file in the default filesystem
             let reader= new FileReader();
             reader.addEventListener('loadend', function(){
                 let result=reader.result;
@@ -234,6 +237,7 @@ API = {
                 FS.close(stream);
             }
         }
+        return 0;
     },
 };
 

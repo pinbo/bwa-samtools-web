@@ -59,46 +59,27 @@ samtools.ls("/samtools/examples").then(d => console.log(d))
 
 samtools.exec("index /samtools/examples/out1.bam /data/out1.bam.bai").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
 
-samtools.exec("index /data/out2.bam /data/out2.bam.bai").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+samtools.exec("index /data/out2.bam /samtools/examples/out2.bam.bai").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
 
-
+samtools.downloadBinary("/samtools/examples/out2.bam.bai").then(d => saveAs(d, "download.bam"));
 samtools.downloadBinary("/samtools/examples/1.sorted.bam").then(d => saveAs(d, "download.bam"));
 
 
-#
-samtools.exec("view -Sb /samtools/examples/1.sam -o /samtools/examples/1.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
-samtools.exec("sort /samtools/examples/1.bam -o /samtools/examples/1.sorted.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+### load data manually
+samtools.ls("/data").then(console.log)
+samtools.exec("sort /data/out2.sam -o /samtools/examples/out2.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+samtools.ls("/samtools/examples").then(console.log)
 
-samtools.exec("index /samtools/examples/1.sorted.bam /samtools/examples/1.sorted.bam.bai").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+samtools.exec("index /samtools/examples/out2.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
 
-samtools.downloadBinary("/samtools/examples/1.sorted.bam").then(d => saveAs(d, "download.bam"));
-
-samtools.exec("sort /data/1.sam -O=SAM").then((d) => console.log(d.stdout, d.stderr, "End of stderr"))
-
-samtools.exec("sort /data/1.sam -O=SAM")
-    .then((d) => {
-        console.log(d.stderr, "End of stderr");
-        let file = new stdInfo("/samtools/examples/1.sorted.sam", d.stdout);
-        return file;
-    })
-    .then(d => samtools.write(d));
-
-samtools.exec("sort /data/1.sam")
-    .then((d) => {
-        console.log(d.stderr, "End of stderr");
-        let file = new stdInfo("/samtools/examples/1.sorted.bam", d.stdout);
-        return file;
-    })
-    .then(d => samtools.write(d));
-
-##
-samtools.setwd("/samtools/examples").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
-samtools.ls(".").then(d => console.log(d))
-samtools.exec("sort -o out1.bam 1.sam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+samtools.exec("index /data/out2.bam /samtools/examples/out2.bam.bai").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
 
 samtools.downloadBinary("1.bam").then(d => saveAs(d, "out1.bam"));
 
-
+##
+samtools.ls("/data").then(console.log)
+samtools.exec("sort /data/out2.sam -o /data/out2.bam").then(d => console.log(d.stdout, "ERRRRRRR", d.stderr));
+samtools.ls("/samtools/examples").then(console.log)
 
 
 ## test bwa
@@ -140,7 +121,7 @@ bwa.exec("aln -o R1.sai  references.fa 2_S2_L001_R1_001.fastq.gz")
 
 
 
-
+bwa.ls("/data").then(console.log)
 
 
 
