@@ -3,31 +3,40 @@
 <head>
     <meta charset="UTF-8"/>
 </head>
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
 <body>
+    <div style="margin:0 auto; max-width:800px;">
+        <div class="w3-sidebar w3-light-grey w3-bar-block" style="width:200px">
+            <h3 class="w3-bar-item">Tools</h3>
+            <a href="test-both.html" class="w3-bar-item w3-button">Map Reads to references</a>
+            <a href="test-bwa.html" class="w3-bar-item w3-button">BWA</a>
+            <a href="test-samtools.html" class="w3-bar-item w3-button">Samtools</a>
+        </div>
 
-<p>Choose reference file (a fasta file)</p>
-<input id="reference" type="file">
+        <div style="margin-left:25%">
+            <div class="w3-container w3-teal">
+                <h3>Make BAM Files with bwa and samtools</h3>
+            </div>
+            <div style="margin-left:10%;max-width:400px;">
+                <h4>I. Choose reference file (a fasta file)</h4>
+                <input id="reference" type="file">
 
+                <h4>II. Choose demultiplexed fastaq files</h4>
+                <input id="fastq" type="file" multiple>
 
-<p>Choose demultiplexed fastaq files</p>
-<input id="fastq" type="file" multiple>
+                <p id="demo1"></p>
+                <p id="demoRef"></p>
+                <p id="demoFq" style="display:none;"></p>
+                <h4>III. Map reads and create bam files</h4>
+                <p>After loading your template fasta file and all the fastq files, now we will use tool bwa and samtools to create indexed bam files for viewing in software IGV.</p>
+                <button onclick="makeSam()">Step 1: Map reads with BWA</button><br><br>
 
-<p id="demo1"></p>
-<p id="demoRef"></p>
-<p id="demoFq" style="display:none;"></p>
+                <button onclick="makeBam()">Step 2: Make sorted bam files</button><br><br>
 
-<p>Step 1: make sams</p>
-<button onclick="makeSam()">Map reads to the reference</button>
-
-<p>Step 2: move sams to samtools's folder</p>
-<button onclick="transferSam()">Transfer SAM files to samtools</button>
-
-<p>Step 3: make bams</p>
-<button onclick="makeBam()">Make sorted BAMs</button>
-
-<p>Step 4: download indexed bams</p>
-<button onclick="downloadBam()">Download indexed BAMs</button>
-
+                <button onclick="downloadBam()">Step 3: Download indexed bam files</button><br><br>
+            </div>
+        </div>
+    </div>
 
 <script src="./aioli/latest/aioli.js"></script>
 <script>
@@ -70,7 +79,9 @@ async function downloadBam(){
 
 // make bams
 async function makeBam(){
+    await transferSam(); // first transfer all the sam files to samtools worker
     let files = await samtools.ls("/data"); // an array of files
+    console.log(files);
     let promises = [];
     for (let i = 0, f; f = files[i]; i++) {
         if (f.includes(".sam")) {
@@ -98,11 +109,8 @@ async function samtoBam(samfile){ // samfile full path
     let indexfile = bamfile + ".bai";
     let cmd2 = ["index", bamfile].join(' ');
     console.log(cmd2);
-    // console.log("Indexing " + bamfile);
     let std2 = await samtools.exec("index " + bamfile);
     console.log("STDERR\n", std2.stderr);
-    // await Aioli.transfer(bamfile, bamfile, Aioli.workers[1], Aioli.workers[0]);
-    // await bwa.ls("/data").then(console.log)
     return bamfile;
 }
 
@@ -116,13 +124,17 @@ async function transferSam(){
     .then(() => samtools.exec("--version"))
     .then(d => console.log("Samtools: ", d.stdout, "\nSTDERR\n", d.stderr));
     let files = await bwa.ls("/data"); // an array of files
+    // let promises = [];
     for (var i = 0, f; f = files[i]; i++) {
         if (f.includes(".sam")) {
+            // promises.push(Aioli.transfer("/data/" + f, "/data/" + f, Aioli.workers[0], Aioli.workers[1]));
             Aioli.transfer("/data/" + f, "/data/" + f, Aioli.workers[0], Aioli.workers[1]);
         }
     }
-    await delay(2000); // wait for 2 sec
+    // await Promise.all(promises);
+    await delay(1000);
     console.log("Finished transfering files!");
+    return 0;
 }
 
 // When a user selects a .sam file from their computer,

@@ -58,7 +58,7 @@ class Aioli
             // Separate URLs to make it easier to test modifying Aioli while using the CDN for Wasm modules
             // urlModule: `https://cdn.biowasm.com/${config.module}/${config.version || "latest"}`,
             urlModule: `http://0.0.0.0:8000/${config.module}/${config.version || "latest"}`,
-            // urlModule: `./${config.module}/${config.version || "latest"}`,
+            // urlModule: `./${config.module}/${config.version || "latest"}`, // does not work
             // urlAioli: "https://cdn.biowasm.com/aioli/latest/aioli.worker.js",  // to use a local worker.js, specify "./aioli.worker.js"
             urlAioli: "./aioli/latest/aioli.worker.js"
         };
@@ -84,9 +84,12 @@ class Aioli
         // Load Aioli worker JS
         const workerResponse = await fetch(this.config.urlAioli);
         const workerJS = await workerResponse.text();
+        console.log("urlAioli: ", this.config.urlAioli);
+        console.log("urlModule: ", this.config.urlModule);
 
         // Load compiled .wasm module JS
         const moduleResponse = await fetch(`${this.config.urlModule}/${this.config.program}.js`);
+        // console.log("urlModule js: ", `${this.config.urlModule}/${this.config.program}.js`);
         const moduleJS = await moduleResponse.text();
 
         // Prepend Aioli worker code to the module (one alternative would be to launch an Aioli
@@ -237,7 +240,7 @@ class Aioli
     // ------------------------------------------------------------------------
     // Transfer a mounted file from a worker to another
     // ------------------------------------------------------------------------
-    static transfer(oldpath, newpath, workerFrom, workerTo)
+    static async transfer(oldpath, newpath, workerFrom, workerTo)
     {
         // Create a communication channel the workers can use
         const channel = new MessageChannel();
