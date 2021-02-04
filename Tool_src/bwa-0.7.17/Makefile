@@ -1,6 +1,6 @@
 CC=			emcc
 #CC=			clang --analyze
-CFLAGS=		-g -Wall -Wno-unused-function -O2 -s FORCE_FILESYSTEM=1 -s ALLOW_MEMORY_GROWTH=1 -s MAXIMUM_MEMORY=4GB -msse -msse2 -msimd128
+CFLAGS=		-g -Wall -Wno-unused-function -O2 -msse -msse2 -msimd128
 WRAP_MALLOC=-DUSE_MALLOC_WRAPPERS
 AR=			emar
 DFLAGS=		-DHAVE_PTHREAD $(WRAP_MALLOC)
