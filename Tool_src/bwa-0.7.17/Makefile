@@ -1,16 +1,13 @@
-CC=			gcc
+CC=			emcc
 #CC=			clang --analyze
-CFLAGS=		-g -Wall -Wno-unused-function -O2
+CFLAGS=		-g -Wall -Wno-unused-function -O2 -s FORCE_FILESYSTEM=1 -s ALLOW_MEMORY_GROWTH=1 -s MAXIMUM_MEMORY=4GB -msse -msse2 -msimd128
 WRAP_MALLOC=-DUSE_MALLOC_WRAPPERS
-AR=			ar
+AR=			emar
 DFLAGS=		-DHAVE_PTHREAD $(WRAP_MALLOC)
 LOBJS=		utils.o kthread.o kstring.o ksw.o bwt.o bntseq.o bwa.o bwamem.o bwamem_pair.o bwamem_extra.o malloc_wrap.o \
 			QSufSort.o bwt_gen.o rope.o rle.o is.o bwtindex.o
-AOBJS=		bwashm.o bwase.o bwaseqio.o bwtgap.o bwtaln.o bamlite.o \
-			bwape.o kopen.o pemerge.o maxk.o \
-			bwtsw2_core.o bwtsw2_main.o bwtsw2_aux.o bwt_lite.o \
-			bwtsw2_chain.o fastmap.o bwtsw2_pair.o
-PROG=		bwa
+AOBJS=		bwashm.o  kopen.o fastmap.o
+PROG=		bwa2.o
 INCLUDES=	
 LIBS=		-lm -lz -lpthread
 SUBDIRS=	.
@@ -26,8 +23,8 @@ endif
 
 all:$(PROG)
 
-bwa:libbwa.a $(AOBJS) main.o
-		$(CC) $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa $(LIBS)
+bwa2.o:libbwa.a $(AOBJS) main.o
+		$(CC) -r $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa $(LIBS)
 
 bwamem-lite:libbwa.a example.o
 		$(CC) $(CFLAGS) $(DFLAGS) example.o -o $@ -L. -lbwa $(LIBS)

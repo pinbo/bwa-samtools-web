@@ -43,7 +43,7 @@ static void *ktf_worker(void *data)
 	}
 	while ((i = steal_work(w->t)) >= 0)
 		w->t->func(w->t->data, i, w - w->t->w);
-	pthread_exit(0);
+	// pthread_exit(0);
 }
 
 void kt_for(int n_threads, void (*func)(void*,long,int), void *data, long n)
@@ -56,8 +56,9 @@ void kt_for(int n_threads, void (*func)(void*,long,int), void *data, long n)
 	tid = (pthread_t*)alloca(n_threads * sizeof(pthread_t));
 	for (i = 0; i < n_threads; ++i)
 		t.w[i].t = &t, t.w[i].i = i;
-	for (i = 0; i < n_threads; ++i) pthread_create(&tid[i], 0, ktf_worker, &t.w[i]);
-	for (i = 0; i < n_threads; ++i) pthread_join(tid[i], 0);
+	// for (i = 0; i < n_threads; ++i) pthread_create(&tid[i], 0, ktf_worker, &t.w[i]);
+	// for (i = 0; i < n_threads; ++i) pthread_join(tid[i], 0);
+    ktf_worker(&t.w[0]);
 }
 
 /*****************

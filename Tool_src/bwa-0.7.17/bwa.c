@@ -377,7 +377,7 @@ int bwa_idx2mem(bwaidx_t *idx)
  * SAM header routines *
  ***********************/
 
-void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line)
+void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line, FILE *stream)
 {
 	int i, n_SQ = 0;
 	extern char *bwa_pg;
@@ -390,14 +390,16 @@ void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line)
 	}
 	if (n_SQ == 0) {
 		for (i = 0; i < bns->n_seqs; ++i) {
-			err_printf("@SQ\tSN:%s\tLN:%d", bns->anns[i].name, bns->anns[i].len);
-			if (bns->anns[i].is_alt) err_printf("\tAH:*\n");
-			else err_fputc('\n', stdout);
+			// err_printf("@SQ\tSN:%s\tLN:%d", bns->anns[i].name, bns->anns[i].len);
+            err_fprintf(stream, "@SQ\tSN:%s\tLN:%d", bns->anns[i].name, bns->anns[i].len);
+			if (bns->anns[i].is_alt) err_fprintf(stream, "\tAH:*\n");
+			// else err_fputc('\n', stdout);
+            else err_fprintf(stream, "\n");
 		}
 	} else if (n_SQ != bns->n_seqs && bwa_verbose >= 2)
 		fprintf(stderr, "[W::%s] %d @SQ lines provided with -H; %d sequences in the index. Continue anyway.\n", __func__, n_SQ, bns->n_seqs);
-	if (hdr_line) err_printf("%s\n", hdr_line);
-	if (bwa_pg) err_printf("%s\n", bwa_pg);
+	if (hdr_line) err_fprintf(stream, "%s\n", hdr_line);
+	if (bwa_pg) err_fprintf(stream, "%s\n", bwa_pg);
 }
 
 static char *bwa_escape(char *s)
