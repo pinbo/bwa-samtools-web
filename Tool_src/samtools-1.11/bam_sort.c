@@ -2336,16 +2336,17 @@ static int sort_blocks(int n_files, size_t k, bam1_tag *buf, const char *prefix,
             w[i].no_save = 0;
         }
         pos += w[i].buf_len; rest -= w[i].buf_len;
-        pthread_create(&tid[i], &attr, worker, &w[i]);
+        // pthread_create(&tid[i], &attr, worker, &w[i]);
+        worker(&w[0]);
     }
-    for (i = 0; i < n_threads; ++i) {
-        pthread_join(tid[i], 0);
-        if (w[i].error != 0) {
-            errno = w[i].error;
-            print_error_errno("sort", "failed to create temporary file \"%s.%.4d.bam\"", prefix, w[i].index);
-            n_failed++;
-        }
-    }
+    // for (i = 0; i < n_threads; ++i) {
+    //     pthread_join(tid[i], 0);
+    //     if (w[i].error != 0) {
+    //         errno = w[i].error;
+    //         print_error_errno("sort", "failed to create temporary file \"%s.%.4d.bam\"", prefix, w[i].index);
+    //         n_failed++;
+    //     }
+    // }
     free(tid); free(w);
     if (n_failed) return -1;
     if (in_mem) return n_threads;
@@ -2674,17 +2675,18 @@ int bam_sort(int argc, char *argv[])
         case '?': sort_usage(stderr); ret = EXIT_FAILURE; goto sort_end;
         }
     }
-
+    
     nargs = argc - optind;
     if (nargs == 0 && isatty(STDIN_FILENO)) {
         sort_usage(stdout);
         ret = EXIT_SUCCESS;
         goto sort_end;
     }
-    else if (nargs >= 2) {
+    else if (nargs == 2) {fnout = argv[optind + 1];} // junli added to save output name}
+    else if (nargs >= 3) {
         // If exactly two, user probably tried to specify legacy <out.prefix>
-        if (nargs == 2)
-            fprintf(stderr, "[bam_sort] Use -T PREFIX / -o FILE to specify temporary and final output files\n");
+        // if (nargs == 2)
+        //     fprintf(stderr, "[bam_sort] Use -T PREFIX / -o FILE to specify temporary and final output files\n");
 
         sort_usage(stderr);
         ret = EXIT_FAILURE;

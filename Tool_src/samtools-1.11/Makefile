@@ -38,15 +38,16 @@ LZ4_LDFLAGS  = -L$(LZ4DIR)
 
 LOBJS=      bam_aux.o bam.o sam.o \
             bam_plbuf.o
-AOBJS=      bam_index.o bam_plcmd.o sam_view.o bam_fastq.o \
-            bam_cat.o bam_md.o bam_reheader.o bam_sort.o \
-            bam_rmdup.o bam_rmdupse.o bam_mate.o bam_stat.o bam_color.o \
-            bamtk.o bam2bcf.o bam2bcf_indel.o sample.o \
-            cut_target.o phase.o bam2depth.o coverage.o padding.o bedcov.o bamshuf.o \
-            faidx.o dict.o stats.o stats_isize.o bam_flags.o bam_split.o \
-            bam_tview.o bam_tview_curses.o bam_tview_html.o bam_lpileup.o \
-            bam_quickcheck.o bam_addrprg.o bam_markdup.o tmp_file.o \
-	    bam_ampliconclip.o amplicon_stats.o
+#AOBJS=      bam_index.o bam_plcmd.o sam_view.o bam_fastq.o \
+#            bam_cat.o bam_md.o bam_reheader.o bam_sort.o \
+#            bam_rmdup.o bam_rmdupse.o bam_mate.o bam_stat.o bam_color.o \
+#            bamtk.o bam2bcf.o bam2bcf_indel.o sample.o \
+#            cut_target.o phase.o bam2depth.o coverage.o padding.o bedcov.o bamshuf.o \
+#            faidx.o dict.o stats.o stats_isize.o bam_flags.o bam_split.o \
+#            bam_tview.o bam_tview_curses.o bam_tview_html.o bam_lpileup.o \
+#            bam_quickcheck.o bam_addrprg.o bam_markdup.o tmp_file.o \
+#	    bam_ampliconclip.o amplicon_stats.o
+AOBJS=      bam_index.o bam_sort.o bamtk.o
 LZ4OBJS  =  $(LZ4DIR)/lz4.o
 
 prefix      = /usr/local
@@ -68,7 +69,7 @@ INSTALL_PROGRAM = $(INSTALL)
 INSTALL_SCRIPT  = $(INSTALL_PROGRAM)
 
 
-PROGRAMS = samtools
+PROGRAMS = samtools.o
 
 MISC_PROGRAMS = \
 	misc/ace2sam misc/maq2sam-long misc/maq2sam-short \
@@ -142,8 +143,8 @@ lib:libbam.a
 libbam.a:$(LOBJS)
 	$(AR) -csru $@ $(LOBJS)
 
-samtools: $(AOBJS) $(LZ4OBJS) libbam.a libst.a $(HTSLIB)
-	$(CC) $(ALL_LDFLAGS) -o $@ $(AOBJS) $(LZ4OBJS) libbam.a libst.a $(HTSLIB_LIB) $(CURSES_LIB) -lm $(ALL_LIBS) -lpthread
+samtools.o: $(AOBJS) $(LZ4OBJS) libbam.a libst.a $(HTSLIB)
+	$(CC) -r $(ALL_LDFLAGS) -o $@ $(AOBJS) $(LZ4OBJS) libbam.a libst.a $(HTSLIB_LIB) $(CURSES_LIB) -lm $(ALL_LIBS) -lpthread
 
 # For building samtools and its test suite only: NOT to be installed.
 libst.a: $(LIBST_OBJS)
