@@ -35,7 +35,8 @@ python -m SimpleHTTPServer
 
 ## Updates
 
-1. 2021-02-07: added `fastp 0.20.1` (JavaScript and wasm files were downloaded from https://cdn.biowasm.com/) and you can use it here: https://junli.netlify.app/apps/filter-fastq-files-with-fastp/. Turns out the author of biowasm, Robert Aboukhalil, has already built an website for fastp: http://fastq.bio/
+- 2021-02-28: replaced  `fastp 0.20.1` (add `interleaved_out` option and compiled based on https://github.com/biowasm/biowasm/tree/main/tools/fastp)
+- 2021-02-07: added `fastp 0.20.1` (JavaScript and wasm files were downloaded from https://cdn.biowasm.com/) and you can use it here: https://junli.netlify.app/apps/filter-fastq-files-with-fastp/. Turns out the author of biowasm, Robert Aboukhalil, has already built an website for fastp: http://fastq.bio/
 
 ## Modifications
 
