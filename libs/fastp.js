@@ -64,9 +64,9 @@ async function filter(){
         interleaved = "--interleaved_in";
         output = "-o filtered_R1_" + filenames[0] + " -O filtered_R2_" + filenames[1];
     }
-    if (document.getElementById("interleaved_out").checked){output = "--stdout"}
+    if (document.getElementById("interleaved_out").checked){output = "--interleaved_out -o filtered_interleaved_" + filenames[0]}
     let baseQuality = "-q " + document.getElementById("basequality").value;
-    let addopt = document.getElementById("addopt").innerHTML.replace(/(?:\r\n|\r|\n)/g, " ");
+    let addopt = document.getElementById("addopt").value.replace(/(?:\r\n|\r|\n)/g, " ");
     let cmd = [input, interleaved, adapterTim, baseQuality, addopt, output].join(" ").replace(/  +/g, ' ');
 
     fastp.setwd("/data") // set working directory
@@ -75,27 +75,7 @@ async function filter(){
     let dd = await fastp.exec(cmd);
     document.getElementById("stdout").innerHTML = dd.stderr;
 
-    if (document.getElementById("interleaved_out").checked){
-        let outfilename = "";
-        if (filenames[0].includes(".gz")){
-            outfilename = "filtered_" + filenames[0];
-        } else {
-            outfilename = "filtered_" + filenames[0] + ".gz";
-        }
-        let out2 = new stdInfo();
-        out2.name = outfilename;
-        out2.content = await pako.gzip(dd.stdout);
-        fastp.write(out2);
-    }
     document.getElementById("download-btn").style.visibility = "visible";
-}
-
-// for writing stdout to file
-class stdInfo {
-    constructor(name, content) {
-        this.name = name;
-        this.content = content;
-    }
 }
 
 // download all the bams as a zip file
