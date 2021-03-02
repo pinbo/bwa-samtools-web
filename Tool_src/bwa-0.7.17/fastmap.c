@@ -363,6 +363,16 @@ int main_mem(int argc, char *argv[])
 	    if (optind + 3 < argc) { // there is argument for output
             // xreopen(argv[optind + 3], "wb", stdout);// output file name 
             outsam = xopen(argv[optind + 3], "w");
+            // add read group line @RG below with ID and SM equal to outfile name
+            char *str = 0;
+            str = calloc(strlen(argv[optind + 3]) * 2 + 12, 1);
+            strcpy (str,"@RG\tID:");
+            strcat (str,argv[optind + 3]);
+            strcat (str,"\tSM:");
+            strcat (str,argv[optind + 3]);
+            // printf("filename: %s\n", str); 
+            hdr_line = bwa_insert_header(str, hdr_line);
+            free(str);
 
         }
     }
