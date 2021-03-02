@@ -365,13 +365,18 @@ int main_mem(int argc, char *argv[])
             outsam = xopen(argv[optind + 3], "w");
             // add read group line @RG below with ID and SM equal to outfile name
             char *str = 0;
-            str = calloc(strlen(argv[optind + 3]) * 2 + 12, 1);
-            strcpy (str,"@RG\tID:");
+            str = calloc(strlen(argv[optind + 3]) * 2 + 14, 1);
+            strcpy (str,"@RG\\tID:");
             strcat (str,argv[optind + 3]);
-            strcat (str,"\tSM:");
+            strcat (str,"\\tSM:");
             strcat (str,argv[optind + 3]);
-            // printf("filename: %s\n", str); 
-            hdr_line = bwa_insert_header(str, hdr_line);
+            fprintf(stderr, "RG line str is: %s\n", str);
+            rg_line = bwa_set_rg(str);
+            fprintf(stderr, "RG line rg_line is: %s\n", rg_line);
+            if (rg_line) {
+                hdr_line = bwa_insert_header(rg_line, hdr_line);
+                free(rg_line);
+            }
             free(str);
 
         }
