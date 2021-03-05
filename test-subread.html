@@ -71,7 +71,6 @@ function loadFq(event)
     // var filenames = [];
     var files = event.target.files;
     for (var i = 0, f; f = files[i]; i++) {
-        // loadSingleFile(f);
         Aioli.mount(f, null, null, Aioli.workers[1]);// only to worker align
         document.getElementById("demoFq").innerHTML += f.name + "\t";
     }
@@ -89,8 +88,8 @@ async function loadRef(event)
     await delay(100);
     buildindex.ls("/data").then(console.log);
     // index
-    // buildindex.exec("-M 1000 -o /data/my_index /data/" + f.name)
-    // .then(d => console.log(d.stdout, "End of stdout\n", d.stderr, "End of stderr"))
+    buildindex.exec("-M 1000 -o /data/my_index /data/" + f.name)
+    .then(d => console.log(d.stdout, "End of stdout\n", d.stderr, "End of stderr"))
 }
 
 // delay before
