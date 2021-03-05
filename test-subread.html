@@ -85,7 +85,7 @@ async function loadRef(event)
     let f = files[0];
     document.getElementById("demoRef").innerHTML = f.name;
     Aioli.mount(f, null, null, Aioli.workers[0]); // only to worker buildindex
-    await delay(100);
+    await delay(500);
     buildindex.ls("/data").then(console.log);
     // index
     buildindex.exec("-M 1000 -o /data/my_index /data/" + f.name)
