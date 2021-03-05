@@ -28,7 +28,8 @@
                 <p id="demoFq" style="display:none;"></p>
                 <h4>III. Map reads and create bam files</h4>
                 <p>After loading your template fasta file and all the fastq files, now we will use tool bwa and samtools to create indexed bam files for viewing in software IGV.</p>
-                <button onclick="makeAll()">Step 1: Test align</button><br><br>
+                <button onclick="makeAll()">Step 1: Map reads to make bam files</button><br><br>
+                <button onclick="downloadBam()">Step 2: Download indexed bam files</button><br><br>
             </div>
         </div>
     </div>
@@ -124,6 +125,27 @@ async function transferIndex(){
     await delay(1000);
     console.log("Finished transfering files!");
     return 0;
+}
+
+// download all the output files as a zip file
+// samtools.downloadBinary("/samtools/examples/out2.bam.bai").then(d => saveAs(d, "download.bam"));
+async function downloadBam(){
+    let files = await align.ls("/data"); // an array of files
+    let zip = new JSZip();
+    let promises = [];
+    for (let i = 0, f; f = files[i]; i++) {
+        if (f.includes(".bam")) {
+            console.log("Prepare downloading ", f);
+            let aa = await align.downloadBinary("/data/" + f).then(d => d.arrayBuffer()).then(d => zip.file(f, d));
+            promises.push(aa);
+        }
+    }
+    const d = await Promise.all(promises);
+    console.log("Finished preparing downloanding bams!");
+	zip.generateAsync({type:"blob"})
+		.then(function(content) {
+			saveAs(content, "indexed_bams.zip");
+		});
 }
 
 </script>
