@@ -28,42 +28,59 @@
                 <p id="demoFq" style="display:none;"></p>
                 <h4>III. Map reads and create bam files</h4>
                 <p>After loading your template fasta file and all the fastq files, now we will use tool bwa and samtools to create indexed bam files for viewing in software IGV.</p>
-                <button onclick="makeBam()">Step 1: Test align</button><br><br>
+                <button onclick="makeAll()">Step 1: Test align</button><br><br>
             </div>
         </div>
     </div>
 
 <script src="./aioli/latest/aioli.js"></script>
 <script>
+document.getElementById("reference").addEventListener("change", loadRef, false);
+document.getElementById("fastq").addEventListener("change", loadFq, false);
+
 let align = new Aioli("subread-align/2.0.1");
 let buildindex = new Aioli("subread-buildindex/2.0.1");
 // Initialize
+// buildindex will be Aioli.workers[0]
 buildindex
 .init()
 .then(() => buildindex.exec(""))
 .then(d => console.log(d.stdout, "ERRRRR", d.stderr));
 
-
+// align will be Aioli.workers[1]
 align
 .init()
 .then(() => align.exec("-v"))
 .then(d => console.log(d.stdout, "ERRRRR", d.stderr));
 
-// buildindex will be Aioli.workers[0]
-// align will be Aioli.workers[1]
-
-// make sam file with bwa mem
-// bwamem("2", "references.fa").then(d => console.log(d));
-async function makeBam (prefix, reference) {
+// make all bams
+async function makeAll(){
     await transferIndex();
-    // let wd = "/bwa2/examples/";
-    let wd = "/data/";
-    align.setwd(wd);
-    align.exec("-i my_index -r 72_R1_001.fastq.gz -R 72_R2_001.fastq.gz -o out72v3.bam -t 1 -I 10").then(d => console.log(d.stdout, "ERRRRR", d.stderr));
+    await delay(1000);
+    let filenames = document.getElementById("demoFq").innerHTML.split("\t");
+    for (i = 0; i < filenames.length; i++) {
+        let ff = filenames[i];
+        if (ff.includes("_R1_001.fastq.gz")) {
+            console.log("Processing: ", ff);
+            let prefix = ff.replace("_R1_001.fastq.gz", "");
+            makeBam(prefix);
+        }
+    }
 }
 
-document.getElementById("reference").addEventListener("change", loadRef, false);
-document.getElementById("fastq").addEventListener("change", loadFq, false);
+// make single bam
+async function makeBam (prefix, index="my_index") {
+    let wd = "/data/";
+    align.setwd(wd);
+    let R1 = prefix + "_R1_001.fastq.gz";
+    let R2 = prefix + "_R2_001.fastq.gz"
+    let out = prefix + ".bam";
+    let cmd = ["-i", index, "-r", R1, "-R", R2, "-o", out, "-t 1 -I 15 --sv --sortReadsByCoordinates"].join(' ');
+    console.log(cmd);
+    let std = await align.exec(cmd);
+    console.log(std.stderr);
+    console.log("Finished writing ", out);
+}
 
 function loadFq(event)
 {
@@ -77,7 +94,6 @@ function loadFq(event)
     // bwa.ls("/bwa2/examples").then(d => console.log(d));
     // return(filenames);
 }
-
 
 async function loadRef(event)
 {
