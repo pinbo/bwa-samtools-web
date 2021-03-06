@@ -35,9 +35,11 @@
                 <p id="demoRef"></p>
                 <p id="demoFq" style="display:none;"></p>
                 <h4>III. Map reads and create bam files</h4>
-                <p>After loading your template fasta file and all the fastq files, now we will use tool bwa and samtools to create indexed bam files for viewing in software IGV.</p>
+                <p>After loading your indexed reference and all the fastq files, now we will use tool subread to create indexed bam files for viewing in software IGV.</p>
                 <button onclick="makeAll()">Step 1: Map reads to make bam files</button><br><br>
                 <button onclick="downloadBam()">Step 2: Download indexed bam files</button><br><br>
+                <button onclick="merge_indels()">Step 2: Download summary of small indels</button><br><br>
+                <button onclick="merge_sv()">Step 2: Download summary of big indels</button><br><br>
             </div>
         </div>
     </div>
@@ -175,6 +177,41 @@ async function downloadIndex(){
 			saveAs(content, "indexed_reference_files.zip");
 		});
 }
+
+// merge all the indel.vcf files
+async function merge_indels(){
+    let files = await align.ls("/data"); // an array of files
+    let promises = [];
+    let indelSummary = "Sample,Gene,POS,REF,ALT,QUAL,TotalCoverage,indelCoverage,indelPercent,indelSize\n";
+    for (let i = 0, f; f = files[i]; i++) {
+        if (f.includes(".bam.indel.vcf")) {
+            let aa = await process_indel_vcf(f);
+            promises.push(aa);
+        }
+    }
+    const d = await Promise.all(promises);
+    indelSummary += promises.join("");
+    let blob = new Blob([indelSummary], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, "Summary_of_indels_less_than_16_bp.csv");
+}
+
+// process indel vcf content for only 1 file
+async function process_indel_vcf(f){//filename
+    let filename = f.replace(".bam.indel.vcf", "");
+    let vcf = await align.cat("/data/" + f);
+    let lines = vcf.split(/\r?\n/);
+    let summary = "";
+    for (let line of lines){
+        if (line && !line.includes("#")){
+            let ss = line.split(/\t/);
+            let DP = ss[7].replace("INDEL;DP=", "").split(";SR="); // DP and SR
+            let pct = String(parseInt(DP[1]) / parseInt(DP[0]) * 100); // percent of indels
+            summary += [filename, ss[0], ss[1], ss[3], ss[4], ss[5], DP[0], DP[1], pct].join(',') + "\n";
+        }
+    }
+    return summary;
+}
+
 
 </script>
 <script src="libs/FileSaver.min.js"></script>
