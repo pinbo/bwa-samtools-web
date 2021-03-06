@@ -17,10 +17,18 @@
                 <h3>Make BAM Files with bwa and samtools</h3>
             </div>
             <div style="margin-left:10%;max-width:400px;">
-                <h4>I. Choose reference file (a fasta file)</h4>
-                <input id="reference" type="file">
+                This software uses a lot of memory: indexing the reference need 2 GB of memory; mapping needs more than 2 GB if you have a lot of files to process.
+                So we can do this in two steps:<br>
+                First, index the reference, download the files, and refresh the page to release the memory for mapping in the next step.<br>
+                Second, load the indexed files (names with prefix my_index) and all the fastq files, and then run mapping.
 
-                <h4>II. Choose demultiplexed fastaq files</h4>
+                <h4>I. Index the reference (a fasta file)</h4>
+                Load the reference file and then download the indexed files.<br>
+                <input id="reference" type="file"><br>
+                <button onclick="downloadIndex()">Step 1: Download indexed references</button><br><br>
+
+                <h4>II. Choose demultiplexed fastaq files and the indexed references</h4>
+                You can load several times. If you load something wrong, just refresh the page and restart.<br>
                 <input id="fastq" type="file" multiple>
 
                 <p id="demo1"></p>
@@ -85,7 +93,7 @@ async function makeBam (prefix, index="my_index") {
 
 function loadFq(event)
 {
-    document.getElementById("demoFq").innerHTML = "";
+    // document.getElementById("demoFq").innerHTML = "";
     // var filenames = [];
     var files = event.target.files;
     for (var i = 0, f; f = files[i]; i++) {
@@ -145,6 +153,26 @@ async function downloadBam(){
 	zip.generateAsync({type:"blob"})
 		.then(function(content) {
 			saveAs(content, "indexed_bams.zip");
+		});
+}
+
+// download the indexed reference files
+async function downloadIndex(){
+    let files = await buildindex.ls("/data"); // an array of files
+    let zip = new JSZip();
+    let promises = [];
+    for (let i = 0, f; f = files[i]; i++) {
+        if (f.includes("my_index")) {
+            console.log("Prepare downloading ", f);
+            let aa = await buildindex.downloadBinary("/data/" + f).then(d => d.arrayBuffer()).then(d => zip.file(f, d));
+            promises.push(aa);
+        }
+    }
+    const d = await Promise.all(promises);
+    console.log("Finished preparing downloanding indexed references!");
+	zip.generateAsync({type:"blob"})
+		.then(function(content) {
+			saveAs(content, "indexed_reference_files.zip");
 		});
 }
 
