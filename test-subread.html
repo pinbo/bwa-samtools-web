@@ -33,9 +33,7 @@
                 <h4>III. Map reads and create bam files</h4>
                 <p>After loading your indexed reference and all the fastq files, now we will use tool subread to create indexed bam files for viewing in software IGV.</p>
                 <button onclick="makeAll()">Step 1: Map reads to make bam files</button><br><br>
-                <button onclick="downloadBam()">Step 2: Download indexed bam files</button><br><br>
-                <button onclick="merge_indels()">Step 3: Download summary of small indels</button><br><br>
-                <button onclick="merge_sv()">Step 4: Download summary of big indels</button><br><br>
+                <button onclick="downloadAll()">Step 2: Download bams and indel summaries</button><br><br>
             </div>
         </div>
     </div>
@@ -249,6 +247,13 @@ async function process_sv_vcf(f){//filename
         }
     }
     return summary;
+}
+
+// download all files at once
+function downloadAll(){
+    downloadBam();
+    merge_indels();
+    merge_sv();
 }
 
 </script>
