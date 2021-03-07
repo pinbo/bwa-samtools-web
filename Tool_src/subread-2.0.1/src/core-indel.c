@@ -300,7 +300,8 @@ int anti_supporting_read_scan(global_context_t * global_context)
 	pthread_t AThreads[64];
 	
 	int thread_no, last_end = 0;
-	for(thread_no=0; thread_no< global_context -> config.all_threads; thread_no++){
+	// for(thread_no=0; thread_no< global_context -> config.all_threads; thread_no++){
+        thread_no=0;
 		AT_context_t * atc = ATconts + thread_no;
 		atc -> thread_id = thread_no;
 		atc -> block_start = last_end;
@@ -313,15 +314,17 @@ int anti_supporting_read_scan(global_context_t * global_context)
 		atc -> large_side_ordered_event_ids = large_side_ordered_event_ids;
 		atc -> event_space = event_space;
 
-		pthread_create(AThreads + thread_no , NULL, anti_support_thread_run, atc);
-	}
+		// pthread_create(AThreads + thread_no , NULL, anti_support_thread_run, atc);
+        anti_support_thread_run(atc);
+	// }
 
-	for(thread_no=0; thread_no< global_context -> config.all_threads; thread_no++){
-		pthread_join(AThreads[thread_no], NULL);
+	// for(thread_no=0; thread_no< global_context -> config.all_threads; thread_no++){
+		// pthread_join(AThreads[thread_no], NULL);
+        thread_no=0;
 		ATconts[thread_no].result_tab -> appendix1 = event_space;
 		HashTableIteration( ATconts[thread_no].result_tab, anti_support_add_count );
 		HashTableDestroy(ATconts[thread_no].result_tab);
-	}
+	// }
 
 	free(small_side_ordered_event_ids);
 	free(large_side_ordered_event_ids);
@@ -707,10 +710,10 @@ int init_indel_tables(global_context_t * context)
 	if(context -> config.all_threads < 2) {
 		indel_context -> event_entry_table = HashTableCreate(399997);
 
-		indel_context -> event_entry_table -> appendix1=malloc(1024 * 1024 * 64);
-		indel_context -> event_entry_table -> appendix2=malloc(1024 * 1024 * 64);
-		memset(indel_context -> event_entry_table -> appendix1, 0, 1024 * 1024 * 64);
-		memset(indel_context -> event_entry_table -> appendix2, 0, 1024 * 1024 * 64);
+		indel_context -> event_entry_table -> appendix1=malloc(1024 * 1024 * 32);//JZ change 64 to 32
+		indel_context -> event_entry_table -> appendix2=malloc(1024 * 1024 * 32);//JZ change 64 to 32
+		memset(indel_context -> event_entry_table -> appendix1, 0, 1024 * 1024 * 32);//JZ change 64 to 32
+		memset(indel_context -> event_entry_table -> appendix2, 0, 1024 * 1024 * 32);//JZ change 64 to 32
 
 		HashTableSetKeyComparisonFunction(indel_context->event_entry_table, localPointerCmp_forEventEntry);
 		HashTableSetHashFunction(indel_context->event_entry_table, localPointerHashFunction_forEventEntry);
@@ -725,12 +728,13 @@ int init_indel_tables(global_context_t * context)
 		}
 	}
 	if(context->config.is_third_iteration_running) {
-		char * fns = malloc(200);
-		fns[0]=0;
-		exec_cmd("ulimit -n", fns, 200);
-		int max_open_file = atoi(fns);
-		//SUBREADprintf("SYS FILE LIMIT=%d\n", max_open_file);
-		free(fns);
+		// char * fns = malloc(200);
+		// fns[0]=0;
+		// exec_cmd("ulimit -n", fns, 200);
+		// int max_open_file = atoi(fns);
+		// //SUBREADprintf("SYS FILE LIMIT=%d\n", max_open_file);
+		// free(fns);
+        int max_open_file = 1024;
 		max_open_file = max(100, max_open_file);
 		max_open_file = min(3000, max_open_file);
 
@@ -4551,7 +4555,7 @@ void init_global_context(global_context_t * context)
 	context->config.is_first_iteration_running = 1;
 	context->config.is_second_iteration_running = 1;
 
-	context->config.reads_per_chunk = 20*1024*1024;
+	context->config.reads_per_chunk = 5*1024*1024; // Junli change from 20 to 5: this reduced the memeory usage
 
 //#warning "=========== 2*1024*1024 IS FOR TESTING BLOCKING AND SHOULD BE COMMENTED ==============="
 //	context->config.reads_per_chunk = 2*1024*1024;

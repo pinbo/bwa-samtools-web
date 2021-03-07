@@ -261,8 +261,9 @@ int parse_opts_aligner(int argc , char ** argv, global_context_t * global_contex
 	opterr = 1;
 	optopt = 63;
 
+    // SUBREADprintf("check point 2-1\n");
 	subread_rebuild_cmd(argc, argv, global_context);
-
+    // SUBREADprintf("check point 2-2\n");
 	global_context->config.entry_program_name = CORE_PROGRAM_SUBREAD;
 	global_context->config.max_mismatch_exonic_reads = 3;
 	global_context->config.max_mismatch_junction_reads = 3;
@@ -288,7 +289,7 @@ int parse_opts_aligner(int argc , char ** argv, global_context_t * global_contex
 	}
 
 */
-
+    // SUBREADprintf("check point 2-3\n");
 	while ((c = getopt_long (argc, argv, "xsvJS:L:A:a:Hd:D:n:m:p:G:E:X:Y:P:R:r:i:l:o:T:I:t:B:bF:cuUfM:Q1:2:3:5:?", long_options, &option_index)) != -1)
 	{
 		switch(c)
@@ -627,7 +628,7 @@ int parse_opts_aligner(int argc , char ** argv, global_context_t * global_contex
 				return -1 ;
 		}
 	}
-
+    // SUBREADprintf("check point 2-4\n");
 	if(argc > optind){
 		SUBREADprintf("Invalid parameter '%s'\n", argv[optind]);
 		return -1;
@@ -672,10 +673,11 @@ int subread_aligner_main(int argc , char ** argv)
 int main_align(int argc , char ** argv)
 {
 #endif
-
+    // SUBREADprintf("check point 2-5\n");
 //	printf("SIZE_OF_ALN=%d\n", sizeof(mapping_result_t));
 //	printf("SIZE_OF_VOT=%d\n", sizeof(voting_context_t));
 	int ret = core_main(argc, argv, parse_opts_aligner);
+    // SUBREADprintf("check point 2-6\n");
 	return ret;
 }
 

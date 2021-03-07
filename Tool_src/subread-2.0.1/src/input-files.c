@@ -51,7 +51,8 @@ FILE * f_subr_open(const char * fname, const char * mode)
 #if defined(__LP64__) || defined(_LP64) || defined(MACOS) 
 		return fopen(fname, mode);
 #else
-		return fopen64(fname, mode);
+		// return fopen64(fname, mode);
+        return fopen(fname, mode);
 #endif
 #endif
 
@@ -73,7 +74,8 @@ void * delay_realloc(void * old_pntr, size_t old_size, size_t new_size){
 	pthread_t thread;
 	void * new_ret = malloc(new_size);
 	memcpy(new_ret, old_pntr, old_size);
-	pthread_create(&thread, NULL, delay_run, old_pntr);
+	// pthread_create(&thread, NULL, delay_run, old_pntr);
+    delay_run(old_pntr);
 	return new_ret;
 }
 
@@ -1797,12 +1799,13 @@ int break_SAM_file(char * in_SAM_file, int is_BAM_file, char * temp_file_prefix,
 	HashTableSetKeyComparisonFunction(fp_table, my_strcmp);
 	HashTableSetHashFunction(fp_table,HashTableStringHashFunction);
 
-	char * fns = malloc(200);
-	fns[0]=0;
-	exec_cmd("ulimit -n", fns, 200);
-	int max_open_file = atoi(fns);
+	// char * fns = malloc(200);
+	// fns[0]=0;
+	// exec_cmd("ulimit -n", fns, 200);
+	// int max_open_file = atoi(fns);
 	//SUBREADprintf("SYS FILE LIMIT=%d\n", max_open_file);
-	free(fns);
+	// free(fns);
+    int max_open_file = 1024;
 
 	max_open_file = max(100, max_open_file);
 	max_open_file = min(3000, max_open_file);
@@ -4615,19 +4618,20 @@ void  SAM_pairer_finish_margin_table( SAM_pairer_context_t * pairer){
 // not only run, but also finalise.
 // It returns 0 if no error.
 int SAM_pairer_run_once( SAM_pairer_context_t * pairer){
-	int x1;
-	for(x1 = 0; x1 < pairer -> total_threads ; x1++){
+	int x1 = 0;
+	// for(x1 = 0; x1 < pairer -> total_threads ; x1++){
 		// this 16-byte memory block is freed in the thread worker.
 		void ** init_params = malloc(sizeof(void *) * 2);
 
 		init_params[0] = pairer;
 		init_params[1] = (void *)(NULL+x1);
-		pthread_create(&(pairer -> threads[x1].thread_stab), NULL, SAM_pairer_thread_run, init_params);
-	}
+		// pthread_create(&(pairer -> threads[x1].thread_stab), NULL, SAM_pairer_thread_run, init_params);
+        SAM_pairer_thread_run(init_params);
+	// }
 
-	for(x1 = 0; x1 < pairer -> total_threads ; x1++){
-		pthread_join(pairer -> threads[x1].thread_stab, NULL);
-	}
+	// for(x1 = 0; x1 < pairer -> total_threads ; x1++){
+	// 	pthread_join(pairer -> threads[x1].thread_stab, NULL);
+	// }
 
 	if(0 == pairer -> is_bad_format){
 		if(pairer -> input_is_BAM) SAM_pairer_finish_margin_table(pairer);
@@ -4636,19 +4640,20 @@ int SAM_pairer_run_once( SAM_pairer_context_t * pairer){
 			SUBREADprintf("ERROR: cannot write into the temporary file. Please check the disk space in the output directory.\n");
 			pairer -> is_internal_error = 1;
 		}else{
-			for(x1 = 0; x1 < pairer -> total_threads ; x1++){
+			// for(x1 = 0; x1 < pairer -> total_threads ; x1++){
 				// this 16-byte memory block is freed in the thread worker.
 
 				void ** init_params = malloc(sizeof(void *) * 2);
 
 				init_params[0] = pairer;
 				init_params[1] = (void *)(NULL+x1);
-				pthread_create(&(pairer -> threads[x1].thread_stab), NULL, SAM_pairer_rescure_orphants_max_FP, init_params);
-			}
+				// pthread_create(&(pairer -> threads[x1].thread_stab), NULL, SAM_pairer_rescure_orphants_max_FP, init_params);
+                SAM_pairer_rescure_orphants_max_FP(init_params);
+			// }
 
-			for(x1 = 0; x1 < pairer -> total_threads ; x1++){
-				pthread_join(pairer -> threads[x1].thread_stab, NULL);
-			}
+			// for(x1 = 0; x1 < pairer -> total_threads ; x1++){
+			// 	pthread_join(pairer -> threads[x1].thread_stab, NULL);
+			// }
 		}
 	}
 
@@ -5237,15 +5242,16 @@ int SAM_nosort_decompress_next_block(SAM_pairer_context_t * pairer){
 #define NOSORT_REFILL_HIGHBAR ( 6 * 1024 * 1024  ) 
 
 void SAM_nosort_run_once(SAM_pairer_context_t * pairer){
-	int x1;
-	for(x1 = 0; x1 < pairer -> total_threads ; x1++){
+	int x1 = 0;
+	// for(x1 = 0; x1 < pairer -> total_threads ; x1++){
 		// this 16-byte memory block is freed in the thread worker.
 		void ** init_params = malloc(sizeof(void *) * 2);
 
 		init_params[0] = pairer;
 		init_params[1] = (void *)(NULL+x1);
-		pthread_create(&(pairer -> threads[x1].thread_stab), NULL, SAM_nosort_thread_run, init_params);
-	}
+		// pthread_create(&(pairer -> threads[x1].thread_stab), NULL, SAM_nosort_thread_run, init_params);
+        SAM_nosort_thread_run(init_params);
+	// }
 
 	char * SBAM_buff = malloc(NOSORT_SBAM_BUFF_SIZE);
 	int nch;
@@ -5479,9 +5485,9 @@ void SAM_nosort_run_once(SAM_pairer_context_t * pairer){
 	free(BIN_buff);
 
 
-	for(x1 = 0; x1 < pairer -> total_threads ; x1++){
-		pthread_join(pairer -> threads[x1].thread_stab, NULL);
-	}
+	// for(x1 = 0; x1 < pairer -> total_threads ; x1++){
+	// 	pthread_join(pairer -> threads[x1].thread_stab, NULL);
+	// }
 }
 
 #define BINADD_NCHAR {			if(binptr >= bin_buff_capacity - 10){\

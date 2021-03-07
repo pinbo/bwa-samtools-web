@@ -407,11 +407,12 @@ int cacheBCL_next_chunk(cache_BCL_t * cache_input){
 	pthread_t * threads = malloc(sizeof(pthread_t)*cache_input -> all_threads);
 	iCache_continuous_read_lanes( cache_input, -1 ); // read filtering binary
 
-	for(x1=0; x1<cache_input -> all_threads; x1++)
-		pthread_create(threads+x1, NULL, iCache_decompress_chunk_1T, cache_input);
+	// for(x1=0; x1<cache_input -> all_threads; x1++)
+	// 	pthread_create(threads+x1, NULL, iCache_decompress_chunk_1T, cache_input);
+    iCache_decompress_chunk_1T(cache_input);
 
-	for(x1=0; x1<cache_input -> all_threads; x1++)
-		pthread_join(threads[x1],NULL);
+	// for(x1=0; x1<cache_input -> all_threads; x1++)
+	// 	pthread_join(threads[x1],NULL);
 	free(threads);
 	cache_input -> read_no_in_chunk = 0;
 	cache_input -> chunk_no ++;

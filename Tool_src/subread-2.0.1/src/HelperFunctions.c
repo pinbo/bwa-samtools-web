@@ -966,7 +966,8 @@ int mathrand_str(char * str_buff){
 }
 
 int mac_or_rand_str(char * str_buff){
-	return mac_str(str_buff) && rand_str(str_buff) && mathrand_str(str_buff);
+	// return mac_str(str_buff) && rand_str(str_buff) && mathrand_str(str_buff);
+    return rand_str(str_buff) && mathrand_str(str_buff);
 }
 
 #define PI_LONG 3.1415926535897932384626434L

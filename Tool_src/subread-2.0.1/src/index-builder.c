@@ -477,7 +477,7 @@ int scan_gene_index(const char index_prefix [], char ** chro_files, int chro_fil
 	unsigned char * huge_index[128];
 
 	for(i=0;i<128;i++) {
-		huge_index[i] = calloc(1024*1024*16,1);
+		huge_index[i] = calloc(1024*1024*2,1); // junli changed *16 to *2 to only locate 256 Mb totally
 		if(NULL == huge_index[i]){ 
 			SUBREADprintf("ERROR: No memory can be allocated.\nThe program has to terminate\n");
 			return -1;
@@ -977,7 +977,7 @@ int check_and_convert_FastA(char ** input_fas, int fa_number, char * out_fa, uns
 	if(ERROR_FOUND_IN_FASTA)
 	{
 		print_in_box( 80,0,0,"There were %d notes for reference sequences.", ERROR_FOUND_IN_FASTA);
-		print_in_box( 89,0,0,"The notes can be found in the log file, %c[36m'%s'%c[0m.", CHAR_ESC, log_fn, CHAR_ESC);
+		print_in_box( 89,0,0,"The notes can be found in the log file, '%s'", log_fn);
 	}
 	else	print_in_box( 80,0,0,"No format issues were found");
 
@@ -1146,10 +1146,12 @@ int main_buildindex(int argc,char ** argv)
 
 	print_subread_logo();
 	size_t free_mem=-1, total_mem=-1;
-	if(get_free_total_mem( &total_mem, &free_mem )){
-		free_mem=-1;
-		total_mem=-1;
-	}
+	// if(get_free_total_mem( &total_mem, &free_mem )){
+	// 	free_mem=-1;
+	// 	total_mem=-1;
+	// }
+    free_mem = 1.5*1024*1024*1024;
+    total_mem = 2.*1024*1024*1024;
 
 	SUBREADputs("");
 	print_in_box(80, 1, 1, "setting");
@@ -1191,7 +1193,7 @@ int main_buildindex(int argc,char ** argv)
 		if(f_type == FILE_TYPE_GZIP_FASTA){
 			o_char = 'o';
 		}
-		print_in_box(94, 0, 0, "                            %c[32m%c%c[36m %s%c[0m", CHAR_ESC, o_char, CHAR_ESC,  get_short_fname(fasta_fn) , CHAR_ESC);
+		print_in_box(80, 0, 0, "                            %c %s", o_char, get_short_fname(fasta_fn));
 	}
 	print_in_box(80, 0, 0, "");
 	
@@ -1279,7 +1281,7 @@ int main_buildindex(int argc,char ** argv)
 
 		if(!ret){
 			print_in_box(80, 0, 1, "Total running time: %.1f minutes.", (miltime()-begin00_ftime)/60);
-			print_in_box(89, 0, 1, "Index %c[36m%s%c[0m was successfully built!", CHAR_ESC, output_file, CHAR_ESC);
+			print_in_box(80, 0, 1, "Index %s was successfully built!", output_file);
 		}
 		HashTableDestroy(huge_table);
 		free(chromosome_lengths);

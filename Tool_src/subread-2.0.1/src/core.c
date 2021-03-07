@@ -234,7 +234,7 @@ void print_in_box(int line_width, int is_boundary, int options, char * pattern,.
 					txt_len++;
 					if(txt_len == 80 - 9)
 					{
-						strcpy(content+x1, "\x1b[0m ...");
+						strcpy(content+x1, " ...");
 						content_len = line_width - 4;
 						content_len = 80 - 4;
 						line_width = 80;
@@ -264,9 +264,9 @@ void print_in_box(int line_width, int is_boundary, int options, char * pattern,.
 			int right_stars = line_width - content_len - 2 - left_stars;
 			strcat(out_line_buff,is_boundary==1?"//":"\\\\");
 			for(x1=0;x1<left_stars-2;x1++) strcat(out_line_buff,"=");
-			sprintf(out_line_buff+strlen(out_line_buff),"%c[36m", CHAR_ESC);
+			sprintf(out_line_buff+strlen(out_line_buff), "");
 			sprintf(out_line_buff+strlen(out_line_buff)," %s ", content);
-			sprintf(out_line_buff+strlen(out_line_buff),"%c[0m", CHAR_ESC);
+			sprintf(out_line_buff+strlen(out_line_buff), "");
 			for(x1=0;x1<right_stars-2;x1++) strcat(out_line_buff,"=");
 			strcat(out_line_buff,is_boundary==1?"\\\\":"//");
 			sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO, "%s", out_line_buff);
@@ -317,9 +317,9 @@ void print_in_box(int line_width, int is_boundary, int options, char * pattern,.
 				content[col1w+1]=0;
 				strcat(out_line_buff,content);
 				strcat(out_line_buff," ");
-				sprintf(out_line_buff+strlen(out_line_buff),"%c[36m", CHAR_ESC);
+				sprintf(out_line_buff+strlen(out_line_buff), "");
 				strcat(out_line_buff,content+col1w+2);
-				sprintf(out_line_buff+strlen(out_line_buff),"%c[0m", CHAR_ESC);
+				sprintf(out_line_buff+strlen(out_line_buff), "");
 			}
 			else
 				strcat(out_line_buff,content);
@@ -331,7 +331,7 @@ void print_in_box(int line_width, int is_boundary, int options, char * pattern,.
 		spaces[78]='|';
 		
 		right_spaces = max(1,right_spaces);
-		sprintf(out_line_buff+strlen(out_line_buff)," %c[0m%s", CHAR_ESC , spaces + (78 - right_spaces + 1));
+		sprintf(out_line_buff+strlen(out_line_buff)," %s", spaces + (78 - right_spaces + 1));
 		sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO, out_line_buff);
 	}
 	free(out_line_buff);
@@ -391,7 +391,7 @@ int show_summary(global_context_t * global_context)
 	}
 
 	print_in_box(80,0,1,"  ");
-	print_in_box(89,0,1,"  %c[36mCompleted successfully.%c[0m", CHAR_ESC, CHAR_ESC);
+	print_in_box(80,0,1,"  Completed successfully.");
 	print_in_box(80,0,1,"  ");
 	print_in_box(80,2,1,"  ");
 	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO, "");
@@ -811,10 +811,10 @@ int check_configuration(global_context_t * global_context)
 		return -1;
 	}
 
-	if(4 == sizeof(void *) && global_context->config.sort_reads_by_coordinates){
-		SUBREADputs("ERROR: the sort by coordinate function only works on 64-bit computers.");
-		return -1;
-	}
+	// if(4 == sizeof(void *) && global_context->config.sort_reads_by_coordinates){
+	// 	SUBREADputs("ERROR: the sort by coordinate function only works on 64-bit computers.");
+	// 	return -1;
+	// }
 
 	if(global_context->config.is_input_read_order_required && global_context->config.sort_reads_by_coordinates){
 		SUBREADputs("ERROR: you shouldn't specify keep input order and sort by coordinate at same time.");
@@ -875,27 +875,32 @@ int myrand_rand(){
 
 int core_main(int argc , char ** argv, int (parse_opts (int , char **, global_context_t * )))
 {
-	struct timeval xtime; 
+	// int ck = 0;
+    // SUBREADprintf("check point 1\n");
+    struct timeval xtime; 
 	gettimeofday(&xtime,NULL);
 	myrand_srand(time(NULL)^xtime.tv_usec);
 
-	global_context_t * global_context;
+	// SUBREADprintf("check point 2\n");
+    global_context_t * global_context;
 	global_context = (global_context_t*)malloc(sizeof(global_context_t));
 	memset(global_context, 0, sizeof(global_context_t));
 	init_global_context(global_context);
 
-
+    // SUBREADprintf("check point 3\n");
 	int ret = parse_opts(argc , argv, global_context);
 	init_core_temp_path(global_context);
 	//global_context->config.reads_per_chunk = 200*1024;
 
-	if(global_context->config.max_indel_length > 20 && !global_context->input_reads.is_paired_end_reads)
+    // SUBREADprintf("check point 4\n");
+    if(global_context->config.max_indel_length > 20 && !global_context->input_reads.is_paired_end_reads)
 	{
 		global_context->config.total_subreads = 28;
 		global_context->config.reassembly_start_read_number = 3;
 		global_context->config.do_superlong_indel_detection = 1;
 	}
 
+    // SUBREADprintf("check point 5\n");
 	if(global_context->config.fast_run){
 		global_context -> config.top_scores = 1;
 		global_context -> config.max_vote_combinations = 1;
@@ -903,14 +908,23 @@ int core_main(int argc , char ** argv, int (parse_opts (int , char **, global_co
 		global_context -> config.multi_best_reads = 1;
 	}
 
+    // SUBREADprintf("check point 6\n");
 	ret = ret || print_configuration(global_context);
+    // SUBREADprintf("check point 7\n");
 	ret = ret || check_configuration(global_context);
+    // SUBREADprintf("check point 8\n");
 	ret = ret || load_global_context(global_context);
+    // SUBREADprintf("check point 9\n");
 	ret = ret || init_modules(global_context);
+    // SUBREADprintf("check point 10\n");
 	ret = ret || read_chunk_circles(global_context);
+    // SUBREADprintf("check point 11\n");
 	ret = ret || write_final_results(global_context);
+    // SUBREADprintf("check point 12\n");
 	ret = ret || destroy_modules(global_context);
+    // SUBREADprintf("check point 13\n");
 	ret = ret || destroy_global_context(global_context);
+    // SUBREADprintf("check point 14\n");
 	ret = ret || show_summary(global_context);
 
 	free(global_context);
@@ -3727,12 +3741,12 @@ void char_strftime(char * tbuf){
 
 void print_subread_logo()
 {
-	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"       %c[44;37m ========== %c[0m%c[36m    _____ _    _ ____  _____  ______          _____  ", CHAR_ESC, CHAR_ESC, CHAR_ESC);
-	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"       %c[44;37m =====      %c[0m%c[36m   / ____| |  | |  _ \\|  __ \\|  ____|   /\\   |  __ \\ ", CHAR_ESC, CHAR_ESC, CHAR_ESC);
-	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"       %c[44;37m   =====    %c[0m%c[36m  | (___ | |  | | |_) | |__) | |__     /  \\  | |  | |", CHAR_ESC, CHAR_ESC, CHAR_ESC);
-	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"       %c[44;37m     ====   %c[0m%c[36m   \\___ \\| |  | |  _ <|  _  /|  __|   / /\\ \\ | |  | |", CHAR_ESC, CHAR_ESC, CHAR_ESC);
-	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"       %c[44;37m       ==== %c[0m%c[36m   ____) | |__| | |_) | | \\ \\| |____ / ____ \\| |__| |", CHAR_ESC, CHAR_ESC, CHAR_ESC);
-	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"       %c[44;37m ========== %c[0m%c[36m  |_____/ \\____/|____/|_|  \\_\\______/_/    \\_\\_____/%c[0m", CHAR_ESC, CHAR_ESC, CHAR_ESC, CHAR_ESC);
+	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"        ==========     _____ _    _ ____  _____  ______          _____  ");
+	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"        =====         / ____| |  | |  _ \\|  __ \\|  ____|   /\\   |  __ \\ ");
+	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"          =====      | (___ | |  | | |_) | |__) | |__     /  \\  | |  | |");
+	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"            ====      \\___ \\| |  | |  _ <|  _  /|  __|   / /\\ \\ | |  | |");
+	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"              ====    ____) | |__| | |_) | | \\ \\| |____ / ____ \\| |__| |");
+	sublog_printf(SUBLOG_STAGE_RELEASED, SUBLOG_LEVEL_INFO ,"        ==========   |_____/ \\____/|____/|_|  \\_\\______/_/    \\_\\_____/");
 	#ifdef MAKE_STANDALONE
 	char * spaces = "";
 	if(strlen(SUBREAD_VERSION) == 8) spaces = "";
@@ -4064,7 +4078,7 @@ int load_global_context(global_context_t * context)
 	}
 
 	context->config.space_type = context->input_reads.first_read_file.space_type;
-	print_in_box(89,0,0,"The input file contains %c[36m%s%c[0m space reads.", CHAR_ESC, context->config.space_type == GENE_SPACE_COLOR?"color":"base", CHAR_ESC);
+	print_in_box(80,0,0,"The input file contains %s space reads.", context->config.space_type == GENE_SPACE_COLOR?"color":"base");
 	if(context->config.space_type == GENE_SPACE_COLOR && context->config.is_BAM_output && !context->config.convert_color_to_base)
 	{
 		print_in_box(80,0,0,"The color-space bases will be converted into base space in the BAM output.");
