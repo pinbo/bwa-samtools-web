@@ -34,6 +34,8 @@
                 <p>After loading your indexed reference and all the fastq files, now we will use tool subread to create indexed bam files for viewing in software IGV.</p>
                 <button onclick="makeAll()">Step 1: Map reads to make bam files</button><br><br>
                 <button onclick="downloadAll()">Step 2: Download bams and indel summaries</button><br><br>
+                <label for="stderr">The output information will be shown</label><br>
+                <textarea id="stderr" name="stderr" rows="20" cols="100" style="font-family: monospace;font-size: 10px;" placeholder="Software running informaiton will be shown here"></textarea><br>
             </div>
         </div>
     </div>
@@ -85,6 +87,7 @@ async function makeBam (prefix, index="my_index") {
     let std = await align.exec(cmd);
     console.log(std.stderr);
     console.log("Finished writing ", out);
+    document.getElementById("stderr").value += std.stderr + "\n";
 }
 
 function loadFq(event)
@@ -110,7 +113,7 @@ async function loadRef(event)
     buildindex.ls("/data").then(console.log);
     // index
     buildindex.exec("-M 1000 -o /data/my_index /data/" + f.name)
-    .then(d => console.log(d.stdout, "End of stdout\n", d.stderr, "End of stderr"))
+    .then(std => document.getElementById("stderr").value += std.stderr + "\n")
 }
 
 // delay before
