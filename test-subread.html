@@ -17,15 +17,11 @@
                 <h3>Make BAM Files with bwa and samtools</h3>
             </div>
             <div style="margin-left:10%;max-width:400px;">
-                This software uses a lot of memory: indexing the reference need 2 GB of memory; mapping needs more than 2 GB if you have a lot of files to process.
-                So we can do this in two steps:<br>
-                First, index the reference, download the files, and refresh the page to release the memory for mapping in the next step.<br>
-                Second, load the indexed files (names with prefix my_index) and all the fastq files, and then run mapping.
+                You need at least 1.5 Gb of free memory to run this software.
 
-                <h4>I. Index the reference (a fasta file)</h4>
-                Load the reference file and then download the indexed files.<br>
+                <h4>I. Load the reference (a fasta file)</h4>
                 <input id="reference" type="file"><br>
-                <button onclick="downloadIndex()">Step 1: Download indexed references</button><br><br>
+                <button onclick="downloadIndex()">Optinal: Download indexed references</button><br><br>
 
                 <h4>II. Choose demultiplexed fastaq files and the indexed references</h4>
                 You can load several times. If you load something wrong, just refresh the page and restart.<br>
@@ -86,7 +82,7 @@ async function makeBam (prefix, index="my_index") {
     let R1 = prefix + "_R1_001.fastq.gz";
     let R2 = prefix + "_R2_001.fastq.gz"
     let out = prefix + ".bam";
-    let cmd = ["-i", index, "-r", R1, "-R", R2, "-o", out, "-t 1 -I 15 --sv --sortReadsByCoordinates"].join(' ');
+    let cmd = ["-i", index, "-r", R1, "-R", R2, "-o", out, "-t 1 -I 16 --sv --sortReadsByCoordinates"].join(' ');
     console.log(cmd);
     let std = await align.exec(cmd);
     console.log(std.stderr);
@@ -111,7 +107,7 @@ async function loadRef(event)
     let files = event.target.files;
     let f = files[0];
     document.getElementById("demoRef").innerHTML = f.name;
-    Aioli.mount(f, null, null, Aioli.workers[0]); // only to worker buildindex
+    await Aioli.mount(f, null, null, Aioli.workers[0]); // only to worker buildindex
     await delay(500);
     buildindex.ls("/data").then(console.log);
     // index
@@ -192,7 +188,7 @@ async function merge_indels(){
     const d = await Promise.all(promises);
     indelSummary += promises.join("");
     let blob = new Blob([indelSummary], { type: "text/plain;charset=utf-8" });
-    saveAs(blob, "Summary_of_indels_less_than_16_bp.csv");
+    saveAs(blob, "Summary_of_indels_less_or_equal_16_bp.csv");
 }
 
 // process indel vcf content for only 1 file
@@ -227,7 +223,7 @@ async function merge_sv(){ // structure variations and big indels > 15bp
     const d = await Promise.all(promises);
     indelSummary += promises.join("");
     let blob = new Blob([indelSummary], { type: "text/plain;charset=utf-8" });
-    saveAs(blob, "Summary_of_indels_more_than_15_bp.csv");
+    saveAs(blob, "Summary_of_indels_more_than_16_bp.csv");
 }
 
 // process indel vcf content for only 1 file
