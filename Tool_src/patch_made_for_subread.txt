@@ -461,7 +461,7 @@ index b4a27ee..ad53718 100644
  
  	for(i=0;i<128;i++) {
 -		huge_index[i] = calloc(1024*1024*16,1);
-+		huge_index[i] = calloc(1024*1024*2,1); // junli changed *16 to *2 to only locate 256 Mb totally
++		huge_index[i] = calloc(1024*1024*4,1); // junli changed *16 to *4 to only locate 512 Mb totally
  		if(NULL == huge_index[i]){ 
  			SUBREADprintf("ERROR: No memory can be allocated.\nThe program has to terminate\n");
  			return -1;
