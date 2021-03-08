@@ -477,7 +477,7 @@ int scan_gene_index(const char index_prefix [], char ** chro_files, int chro_fil
 	unsigned char * huge_index[128];
 
 	for(i=0;i<128;i++) {
-		huge_index[i] = calloc(1024*1024*2,1); // junli changed *16 to *2 to only locate 256 Mb totally
+		huge_index[i] = calloc(1024*1024*4,1); // junli changed *16 to *4 to only locate 512 Mb totally
 		if(NULL == huge_index[i]){ 
 			SUBREADprintf("ERROR: No memory can be allocated.\nThe program has to terminate\n");
 			return -1;
