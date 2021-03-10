@@ -6,13 +6,15 @@ emmake make -f Makefile.Linux
 cd ../bin
 emcc -O3 subread-align.o -o subread-align.html -s FORCE_FILESYSTEM=1 -s EXTRA_EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1
 emcc -O3 subread-buildindex.o -o subread-buildindex.html -s FORCE_FILESYSTEM=1 -s EXTRA_EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1 -s MAXIMUM_MEMORY=4GB
+emcc -O3 exactSNP.o -o exactSNP.html -s FORCE_FILESYSTEM=1 -s EXTRA_EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1
 
 ## errror for align: Uncaught RuntimeError: table index is out of bounds
 # fixed by add -s MAXIMUM_MEMORY=4GB
 
 ## modifications
 git log
-git diff ebd303896564b928572d78f63a1978fb78f6939f ed24c563aedb7e71ba7b05f47dfb3bc3209f0b7c > patch_made_for_subread.txt
+# git diff old-git new-git folder
+git diff ebd303896564b928572d78f63a1978fb78f6939f a9dea826c07c6354778ed396586b7dc62021da9e src/ > patch_made_for_subread.txt
 # index-builder.c
 	free_mem = 1.5*1024*1024*1024;
     total_mem = 2.*1024*1024*1024;
