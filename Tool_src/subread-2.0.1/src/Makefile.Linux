@@ -18,10 +18,10 @@ ALL_H=$(addsuffix .h, ${ALL_LIBS})
 ALL_C=$(addsuffix .c, ${ALL_LIBS})
 
 # all: genRandomReads detectionCall sublong repair txUnique featureCounts removeDup exactSNP subread-buildindex subindel  subread-align subjunc qualityScores subread-fullscan propmapped flattenGTF # samMappedBases mergeVCF  testZlib
-all: subread-buildindex.o subread-align.o
+all: subread-buildindex.o subread-align.o exactSNP.o
 	mkdir -p ../bin/utilities
 	# mv longread-one/LRM longread-one/sublong
-	mv subread-align.o subread-buildindex.o ../bin/
+	mv subread-align.o subread-buildindex.o exactSNP.o ../bin/
 	# mv detectionCall genRandomReads repair propmapped qualityScores removeDup subread-fullscan txUnique flattenGTF ../bin/utilities
 	@echo
 	@echo "###########################################################"
@@ -59,8 +59,8 @@ all: subread-buildindex.o subread-align.o
 # propmapped: propmapped.c ${ALL_OBJECTS}
 # 	${CC} -o propmapped propmapped.c ${ALL_OBJECTS} ${LDFLAGS}
 
-# exactSNP: SNPCalling.c SNPCalling.h  ${ALL_OBJECTS}
-# 	${CC}  -o exactSNP SNPCalling.c  ${ALL_OBJECTS} ${LDFLAGS}
+exactSNP.o: SNPCalling.c SNPCalling.h  ${ALL_OBJECTS}
+	${CC} -r -o exactSNP.o SNPCalling.c  ${ALL_OBJECTS} ${LDFLAGS}
 
 subread-buildindex.o: index-builder.c subread.h ${ALL_OBJECTS}
 	${CC} -r -o subread-buildindex.o  index-builder.c ${ALL_OBJECTS} ${LDFLAGS}
