@@ -35,7 +35,7 @@
                 <button onclick="makeAll()">Step 1: Map reads to make bam files</button><br><br>
                 <button onclick="downloadAll()">Step 2: Download bams and indel summaries</button><br><br>
                 <label for="stderr">The output information will be shown</label><br>
-                <textarea id="stderr" name="stderr" rows="20" cols="100" style="font-family: monospace;font-size: 12px;" placeholder="Software running informaiton will be shown here"></textarea><br>
+                <textarea id="stderr" name="stderr" rows="20" cols="85" style="font-family: monospace;font-size: 12px;" placeholder="Software running informaiton will be shown here"></textarea><br>
             </div>
         </div>
     </div>
@@ -62,15 +62,15 @@ align
 
 // make all bams
 async function makeAll(){
-    await transferIndex();
-    await delay(1000);
+    // await transferIndex();
+    // await delay(1000);
     let filenames = document.getElementById("demoFq").innerHTML.split("\t");
     for (i = 0; i < filenames.length; i++) {
         let ff = filenames[i];
         if (ff.includes("_R1_001.fastq.gz")) {
             console.log("Processing: ", ff);
             let prefix = ff.replace("_R1_001.fastq.gz", "");
-            makeBam(prefix);
+            await makeBam(prefix);
         }
     }
 }
@@ -112,8 +112,11 @@ async function loadRef(event)
     await delay(500);
     buildindex.ls("/data").then(console.log);
     // index
-    buildindex.exec("-M 1000 -o /data/my_index /data/" + f.name)
-    .then(std => document.getElementById("stderr").value += std.stderr + "\n")
+    await buildindex.exec("-M 1000 -o /data/my_index /data/" + f.name)
+    .then(std => document.getElementById("stderr").value += std.stderr + "\n");
+    await transferIndex();
+    // await delay(1000);
+    buildindex.worker.terminate();
 }
 
 // delay before
@@ -125,13 +128,12 @@ async function transferIndex(){
     for (var i = 0, f; f = files[i]; i++) {
         if (f.includes("my_index")) {
             // promises.push(Aioli.transfer("/data/" + f, "/data/" + f, Aioli.workers[0], Aioli.workers[1]));
-            Aioli.transfer("/data/" + f, "/data/" + f, Aioli.workers[0], Aioli.workers[1]);
+            Aioli.transfer("/data/" + f, "/data/" + f, buildindex, align);
         }
     }
     // await Promise.all(promises);
     await delay(1000);
     console.log("Finished transfering files!");
-    return 0;
 }
 
 // download all the output files as a zip file
