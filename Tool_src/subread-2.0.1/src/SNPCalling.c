@@ -1225,19 +1225,21 @@ int parse_read_lists_maybe_threads(char * in_FASTA_file, char * out_BED_file, ch
 		parameters -> output_fp_lock = malloc(sizeof(*parameters -> output_fp_lock));
 		pthread_spin_init(parameters -> output_fp_lock ,  PTHREAD_PROCESS_PRIVATE);
 
-		int i;
-		for(i=0; i<all_threads; i++)
-		{
-			param.thread_id = i;
-			pthread_create(runners+i, NULL,  parse_read_lists_wrapper, &param);
-			pthread_spin_lock(&param.init_lock);
-		}
+		// int i;
+		// for(i=0; i<all_threads; i++)
+		// {
+			// param.thread_id = i;
+			// pthread_create(runners+i, NULL,  parse_read_lists_wrapper, &param);
+			// pthread_spin_lock(&param.init_lock);
+		// }
+        param.thread_id = 0;
+        parse_read_lists_wrapper(&param);
 
 		
-		for (i=0; i< all_threads; i++)
-		{
-			pthread_join(*(runners+i), NULL);
-		}
+		// for (i=0; i< all_threads; i++)
+		// {
+		// 	pthread_join(*(runners+i), NULL);
+		// }
 		free((void *)parameters -> output_fp_lock);
 	}
 	//fprintf(out_fp, "## Fisher_Test_Size=%u\n",fisher_test_size);
