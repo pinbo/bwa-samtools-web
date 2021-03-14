@@ -13,7 +13,7 @@ index d6b4c96..1718b1c 100644
  
  #define PI_LONG 3.1415926535897932384626434L
 diff --git a/Tool_src/subread-2.0.1/src/Makefile.Linux b/Tool_src/subread-2.0.1/src/Makefile.Linux
-index 56a15f7..7b4bad9 100644
+index 56a15f7..004ee12 100644
 --- a/Tool_src/subread-2.0.1/src/Makefile.Linux
 +++ b/Tool_src/subread-2.0.1/src/Makefile.Linux
 @@ -1,15 +1,15 @@
@@ -42,13 +42,13 @@ index 56a15f7..7b4bad9 100644
  
 -all: genRandomReads detectionCall sublong repair txUnique featureCounts removeDup exactSNP subread-buildindex subindel  subread-align subjunc qualityScores subread-fullscan propmapped flattenGTF # samMappedBases mergeVCF  testZlib
 +# all: genRandomReads detectionCall sublong repair txUnique featureCounts removeDup exactSNP subread-buildindex subindel  subread-align subjunc qualityScores subread-fullscan propmapped flattenGTF # samMappedBases mergeVCF  testZlib
-+all: subread-buildindex.o subread-align.o
++all: subread-buildindex.o subread-align.o exactSNP.o
  	mkdir -p ../bin/utilities
 -	mv longread-one/LRM longread-one/sublong
 -	mv longread-one/sublong subread-align subjunc featureCounts  subindel exactSNP subread-buildindex ../bin/
 -	mv detectionCall genRandomReads repair propmapped qualityScores removeDup subread-fullscan txUnique flattenGTF ../bin/utilities
 +	# mv longread-one/LRM longread-one/sublong
-+	mv subread-align.o subread-buildindex.o ../bin/
++	mv subread-align.o subread-buildindex.o exactSNP.o ../bin/
 +	# mv detectionCall genRandomReads repair propmapped qualityScores removeDup subread-fullscan txUnique flattenGTF ../bin/utilities
  	@echo
  	@echo "###########################################################"
@@ -103,8 +103,8 @@ index 56a15f7..7b4bad9 100644
  
 -exactSNP: SNPCalling.c SNPCalling.h  ${ALL_OBJECTS}
 -	${CC}  -o exactSNP SNPCalling.c  ${ALL_OBJECTS} ${LDFLAGS}
-+# exactSNP: SNPCalling.c SNPCalling.h  ${ALL_OBJECTS}
-+# 	${CC}  -o exactSNP SNPCalling.c  ${ALL_OBJECTS} ${LDFLAGS}
++exactSNP.o: SNPCalling.c SNPCalling.h  ${ALL_OBJECTS}
++	${CC} -r -o exactSNP.o SNPCalling.c  ${ALL_OBJECTS} ${LDFLAGS}
  
 -subread-buildindex: index-builder.c subread.h ${ALL_OBJECTS}
 -	${CC}  -o subread-buildindex  index-builder.c ${ALL_OBJECTS} ${LDFLAGS}
@@ -153,6 +153,43 @@ index 56a15f7..7b4bad9 100644
  
  clean:
  	rm -f core featureCounts exactSNP removeDup subread-buildindex ${ALL_OBJECTS}
+diff --git a/Tool_src/subread-2.0.1/src/SNPCalling.c b/Tool_src/subread-2.0.1/src/SNPCalling.c
+index 193f918..f61ca6d 100644
+--- a/Tool_src/subread-2.0.1/src/SNPCalling.c
++++ b/Tool_src/subread-2.0.1/src/SNPCalling.c
+@@ -1225,19 +1225,21 @@ int parse_read_lists_maybe_threads(char * in_FASTA_file, char * out_BED_file, ch
+ 		parameters -> output_fp_lock = malloc(sizeof(*parameters -> output_fp_lock));
+ 		pthread_spin_init(parameters -> output_fp_lock ,  PTHREAD_PROCESS_PRIVATE);
+ 
+-		int i;
+-		for(i=0; i<all_threads; i++)
+-		{
+-			param.thread_id = i;
+-			pthread_create(runners+i, NULL,  parse_read_lists_wrapper, &param);
+-			pthread_spin_lock(&param.init_lock);
+-		}
++		// int i;
++		// for(i=0; i<all_threads; i++)
++		// {
++			// param.thread_id = i;
++			// pthread_create(runners+i, NULL,  parse_read_lists_wrapper, &param);
++			// pthread_spin_lock(&param.init_lock);
++		// }
++        param.thread_id = 0;
++        parse_read_lists_wrapper(&param);
+ 
+ 		
+-		for (i=0; i< all_threads; i++)
+-		{
+-			pthread_join(*(runners+i), NULL);
+-		}
++		// for (i=0; i< all_threads; i++)
++		// {
++		// 	pthread_join(*(runners+i), NULL);
++		// }
+ 		free((void *)parameters -> output_fp_lock);
+ 	}
+ 	//fprintf(out_fp, "## Fisher_Test_Size=%u\n",fisher_test_size);
 diff --git a/Tool_src/subread-2.0.1/src/core-indel.c b/Tool_src/subread-2.0.1/src/core-indel.c
 index 874032a..514ea1d 100644
 --- a/Tool_src/subread-2.0.1/src/core-indel.c
@@ -453,7 +490,7 @@ index ff54fd1..ccb1f9b 100644
  extern double begin_ftime;
  
 diff --git a/Tool_src/subread-2.0.1/src/index-builder.c b/Tool_src/subread-2.0.1/src/index-builder.c
-index b4a27ee..ad53718 100644
+index b4a27ee..63dc75a 100644
 --- a/Tool_src/subread-2.0.1/src/index-builder.c
 +++ b/Tool_src/subread-2.0.1/src/index-builder.c
 @@ -477,7 +477,7 @@ int scan_gene_index(const char index_prefix [], char ** chro_files, int chro_fil
