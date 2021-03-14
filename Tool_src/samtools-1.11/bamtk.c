@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
         argc = 2;
     }
 
-    int ret = 0;
+    int ret = 0; optind = 1; opterr = 1; optopt = 0;
     if (strcmp(argv[1], "view") == 0)           ret = main_samview(argc-1, argv+1);
     // else if (strcmp(argv[1], "import") == 0)    { bam_import_err(); return 1; }
     // else if (strcmp(argv[1], "mpileup") == 0)   ret = bam_mpileup(argc-1, argv+1);
