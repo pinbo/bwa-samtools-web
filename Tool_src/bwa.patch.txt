@@ -1,0 +1,393 @@
+diff --git a/Tool_src/bwa-0.7.17/Makefile b/Tool_src/bwa-0.7.17/Makefile
+index 7151435..abc4953 100644
+--- a/Tool_src/bwa-0.7.17/Makefile
++++ b/Tool_src/bwa-0.7.17/Makefile
+@@ -1,16 +1,13 @@
+-CC=			gcc
++CC=			emcc
+ #CC=			clang --analyze
+-CFLAGS=		-g -Wall -Wno-unused-function -O2
++CFLAGS=		-g -Wall -Wno-unused-function -O2 -msse -msse2 -msimd128
+ WRAP_MALLOC=-DUSE_MALLOC_WRAPPERS
+-AR=			ar
++AR=			emar
+ DFLAGS=		-DHAVE_PTHREAD $(WRAP_MALLOC)
+ LOBJS=		utils.o kthread.o kstring.o ksw.o bwt.o bntseq.o bwa.o bwamem.o bwamem_pair.o bwamem_extra.o malloc_wrap.o \
+ 			QSufSort.o bwt_gen.o rope.o rle.o is.o bwtindex.o
+-AOBJS=		bwashm.o bwase.o bwaseqio.o bwtgap.o bwtaln.o bamlite.o \
+-			bwape.o kopen.o pemerge.o maxk.o \
+-			bwtsw2_core.o bwtsw2_main.o bwtsw2_aux.o bwt_lite.o \
+-			bwtsw2_chain.o fastmap.o bwtsw2_pair.o
+-PROG=		bwa
++AOBJS=		bwashm.o  kopen.o fastmap.o
++PROG=		bwa2.o
+ INCLUDES=	
+ LIBS=		-lm -lz -lpthread
+ SUBDIRS=	.
+@@ -26,8 +23,8 @@ endif
+ 
+ all:$(PROG)
+ 
+-bwa:libbwa.a $(AOBJS) main.o
+-		$(CC) $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa $(LIBS)
++bwa2.o:libbwa.a $(AOBJS) main.o
++		$(CC) -r $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa $(LIBS)
+ 
+ bwamem-lite:libbwa.a example.o
+ 		$(CC) $(CFLAGS) $(DFLAGS) example.o -o $@ -L. -lbwa $(LIBS)
+diff --git a/Tool_src/bwa-0.7.17/bwa.c b/Tool_src/bwa-0.7.17/bwa.c
+index 75ccdf4..11091b1 100644
+--- a/Tool_src/bwa-0.7.17/bwa.c
++++ b/Tool_src/bwa-0.7.17/bwa.c
+@@ -377,7 +377,7 @@ int bwa_idx2mem(bwaidx_t *idx)
+  * SAM header routines *
+  ***********************/
+ 
+-void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line)
++void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line, FILE *stream)
+ {
+ 	int i, n_SQ = 0;
+ 	extern char *bwa_pg;
+@@ -390,14 +390,16 @@ void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line)
+ 	}
+ 	if (n_SQ == 0) {
+ 		for (i = 0; i < bns->n_seqs; ++i) {
+-			err_printf("@SQ\tSN:%s\tLN:%d", bns->anns[i].name, bns->anns[i].len);
+-			if (bns->anns[i].is_alt) err_printf("\tAH:*\n");
+-			else err_fputc('\n', stdout);
++			// err_printf("@SQ\tSN:%s\tLN:%d", bns->anns[i].name, bns->anns[i].len);
++            err_fprintf(stream, "@SQ\tSN:%s\tLN:%d", bns->anns[i].name, bns->anns[i].len);
++			if (bns->anns[i].is_alt) err_fprintf(stream, "\tAH:*\n");
++			// else err_fputc('\n', stdout);
++            else err_fprintf(stream, "\n");
+ 		}
+ 	} else if (n_SQ != bns->n_seqs && bwa_verbose >= 2)
+ 		fprintf(stderr, "[W::%s] %d @SQ lines provided with -H; %d sequences in the index. Continue anyway.\n", __func__, n_SQ, bns->n_seqs);
+-	if (hdr_line) err_printf("%s\n", hdr_line);
+-	if (bwa_pg) err_printf("%s\n", bwa_pg);
++	if (hdr_line) err_fprintf(stream, "%s\n", hdr_line);
++	if (bwa_pg) err_fprintf(stream, "%s\n", bwa_pg);
+ }
+ 
+ static char *bwa_escape(char *s)
+diff --git a/Tool_src/bwa-0.7.17/bwa.h b/Tool_src/bwa-0.7.17/bwa.h
+index aa21725..6d9663a 100644
+--- a/Tool_src/bwa-0.7.17/bwa.h
++++ b/Tool_src/bwa-0.7.17/bwa.h
+@@ -58,7 +58,7 @@ extern "C" {
+ 	int bwa_idx2mem(bwaidx_t *idx);
+ 	int bwa_mem2idx(int64_t l_mem, uint8_t *mem, bwaidx_t *idx);
+ 
+-	void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line);
++	void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line, FILE *stream);
+ 	char *bwa_set_rg(const char *s);
+ 	char *bwa_insert_header(const char *s, char *hdr);
+ 
+diff --git a/Tool_src/bwa-0.7.17/examples/.gitignore b/Tool_src/bwa-0.7.17/examples/.gitignore
+new file mode 100644
+index 0000000..e714a15
+--- /dev/null
++++ b/Tool_src/bwa-0.7.17/examples/.gitignore
+@@ -0,0 +1,9 @@
++*.bam
++*.bai
++*.fai
++*.glf*
++*.pileup*
++calDepth
++ex1*.rg
++ex1.bcf
++ex1.vcf
+diff --git a/Tool_src/bwa-0.7.17/examples/toy.fa b/Tool_src/bwa-0.7.17/examples/toy.fa
+new file mode 100644
+index 0000000..afe990a
+--- /dev/null
++++ b/Tool_src/bwa-0.7.17/examples/toy.fa
+@@ -0,0 +1,4 @@
++>ref
++AGCATGTTAGATAAGATAGCTGTGCTAGTAGGCAGTCAGCGCCAT
++>ref2
++aggttttataaaacaattaagtctacagagcaactacgcg
+diff --git a/Tool_src/bwa-0.7.17/fastmap.c b/Tool_src/bwa-0.7.17/fastmap.c
+index 41c29cb..f3749b0 100644
+--- a/Tool_src/bwa-0.7.17/fastmap.c
++++ b/Tool_src/bwa-0.7.17/fastmap.c
+@@ -35,7 +35,7 @@ typedef struct {
+ 	bseq1_t *seqs;
+ } ktp_data_t;
+ 
+-static void *process(void *shared, int step, void *_data)
++static void *process(void *shared, int step, void *_data, FILE *outsam)
+ {
+ 	ktp_aux_t *aux = (ktp_aux_t*)shared;
+ 	ktp_data_t *data = (ktp_data_t*)_data;
+@@ -83,14 +83,20 @@ static void *process(void *shared, int step, void *_data)
+ 			free(sep[0]); free(sep[1]);
+ 		} else mem_process_seqs(opt, idx->bwt, idx->bns, idx->pac, aux->n_processed, data->n_seqs, data->seqs, aux->pes0);
+ 		aux->n_processed += data->n_seqs;
++        // fprintf(stdout, "End of Step1!\n");
+ 		return data;
+ 	} else if (step == 2) {
++        // fprintf(stdout, "Start writing alignments!\n");
+ 		for (i = 0; i < data->n_seqs; ++i) {
+-			if (data->seqs[i].sam) err_fputs(data->seqs[i].sam, stdout);
++			// if (data->seqs[i].sam) err_fputs(data->seqs[i].sam, stdout);
++            if (data->seqs[i].sam) err_fputs(data->seqs[i].sam, outsam); // write to file
++            // if (data->seqs[i].sam) fprintf(stdout, "%s\n", data->seqs[i].sam);
+ 			free(data->seqs[i].name); free(data->seqs[i].comment);
+ 			free(data->seqs[i].seq); free(data->seqs[i].qual); free(data->seqs[i].sam);
+ 		}
+ 		free(data->seqs); free(data);
++        // fprintf(stdout, "End writing alignments!\n");
++        // fprintf(stderr, "End writing alignments!\n");
+ 		return 0;
+ 	}
+ 	return 0;
+@@ -235,7 +241,7 @@ int main_mem(int argc, char *argv[])
+ 	}
+ 
+ 	if (opt->n_threads < 1) opt->n_threads = 1;
+-	if (optind + 1 >= argc || optind + 3 < argc) {
++	if (optind + 1 >= argc || optind + 4 < argc) {
+ 		fprintf(stderr, "\n");
+ 		fprintf(stderr, "Usage: bwa mem [options] <idxbase> <in1.fq> [in2.fq]\n\n");
+ 		fprintf(stderr, "Algorithm options:\n\n");
+@@ -245,7 +251,6 @@ int main_mem(int argc, char *argv[])
+ 		fprintf(stderr, "       -d INT        off-diagonal X-dropoff [%d]\n", opt->zdrop);
+ 		fprintf(stderr, "       -r FLOAT      look for internal seeds inside a seed longer than {-k} * FLOAT [%g]\n", opt->split_factor);
+ 		fprintf(stderr, "       -y INT        seed occurrence for the 3rd round seeding [%ld]\n", (long)opt->max_mem_intv);
+-//		fprintf(stderr, "       -s INT        look for internal seeds inside a seed with less than INT occ [%d]\n", opt->split_width);
+ 		fprintf(stderr, "       -c INT        skip seeds with more than INT occurrences [%d]\n", opt->max_occ);
+ 		fprintf(stderr, "       -D FLOAT      drop chains shorter than FLOAT fraction of the longest overlapping chain [%.2f]\n", opt->drop_ratio);
+ 		fprintf(stderr, "       -W INT        discard a chain if seeded bases shorter than INT [0]\n");
+@@ -324,7 +329,7 @@ int main_mem(int argc, char *argv[])
+ 	} else update_a(opt, &opt0);
+ 	bwa_fill_scmat(opt->a, opt->b, opt->mat);
+ 
+-	aux.idx = bwa_idx_load_from_shm(argv[optind]);
++	aux.idx = bwa_idx_load_from_shm(argv[optind]); // index position is optind
+ 	if (aux.idx == 0) {
+ 		if ((aux.idx = bwa_idx_load(argv[optind], BWA_IDX_ALL)) == 0) return 1; // FIXME: memory leak
+ 	} else if (bwa_verbose >= 3)
+@@ -333,19 +338,20 @@ int main_mem(int argc, char *argv[])
+ 		for (i = 0; i < aux.idx->bns->n_seqs; ++i)
+ 			aux.idx->bns->anns[i].is_alt = 0;
+ 
+-	ko = kopen(argv[optind + 1], &fd);
++	ko = kopen(argv[optind + 1], &fd); // 1st fq file
+ 	if (ko == 0) {
+ 		if (bwa_verbose >= 1) fprintf(stderr, "[E::%s] fail to open file `%s'.\n", __func__, argv[optind + 1]);
+ 		return 1;
+ 	}
+ 	fp = gzdopen(fd, "r");
+ 	aux.ks = kseq_init(fp);
+-	if (optind + 2 < argc) {
++    FILE *outsam = 0;
++	if (optind + 3 <= argc) {// junli change to 3 from 2
+ 		if (opt->flag&MEM_F_PE) {
+ 			if (bwa_verbose >= 2)
+ 				fprintf(stderr, "[W::%s] when '-p' is in use, the second query file is ignored.\n", __func__);
+ 		} else {
+-			ko2 = kopen(argv[optind + 2], &fd2);
++			ko2 = kopen(argv[optind + 2], &fd2); // 2end fq file
+ 			if (ko2 == 0) {
+ 				if (bwa_verbose >= 1) fprintf(stderr, "[E::%s] fail to open file `%s'.\n", __func__, argv[optind + 2]);
+ 				return 1;
+@@ -354,10 +360,39 @@ int main_mem(int argc, char *argv[])
+ 			aux.ks2 = kseq_init(fp2);
+ 			opt->flag |= MEM_F_PE;
+ 		}
+-	}
+-	bwa_print_sam_hdr(aux.idx->bns, hdr_line);
++	    if (optind + 3 < argc) { // there is argument for output
++            // xreopen(argv[optind + 3], "wb", stdout);// output file name 
++            outsam = xopen(argv[optind + 3], "w");
++            // add read group line @RG below with ID and SM equal to outfile name
++            char *str = 0;
++            str = calloc(strlen(argv[optind + 3]) * 2 + 14, 1);
++            strcpy (str,"@RG\\tID:");
++            strcat (str,argv[optind + 3]);
++            strcat (str,"\\tSM:");
++            strcat (str,argv[optind + 3]);
++            fprintf(stderr, "RG line str is: %s\n", str);
++            rg_line = bwa_set_rg(str);
++            fprintf(stderr, "RG line rg_line is: %s\n", rg_line);
++            if (rg_line) {
++                hdr_line = bwa_insert_header(rg_line, hdr_line);
++                free(rg_line);
++            }
++            free(str);
++
++        }
++    }
++	bwa_print_sam_hdr(aux.idx->bns, hdr_line, outsam);
+ 	aux.actual_chunk_size = fixed_chunk_size > 0? fixed_chunk_size : opt->chunk_size * opt->n_threads;
+-	kt_pipeline(no_mt_io? 1 : 2, process, &aux, 3);
++	// kt_pipeline(no_mt_io? 1 : 2, process, &aux, 3);
++    // junli added without using pthread, because I just use 1 thread
++    ktp_data_t *mydata;
++    mydata = calloc(1, sizeof(ktp_data_t));
++    mydata = process(&aux, 0, mydata, outsam);
++    process(&aux, 1, mydata, outsam);
++    process(&aux, 2, mydata, outsam);
++    err_fflush(outsam);
++    err_fclose(outsam);
++
+ 	free(hdr_line);
+ 	free(opt);
+ 	bwa_idx_destroy(aux.idx);
+diff --git a/Tool_src/bwa-0.7.17/kthread.c b/Tool_src/bwa-0.7.17/kthread.c
+index 780de19..a2fce34 100644
+--- a/Tool_src/bwa-0.7.17/kthread.c
++++ b/Tool_src/bwa-0.7.17/kthread.c
+@@ -43,7 +43,7 @@ static void *ktf_worker(void *data)
+ 	}
+ 	while ((i = steal_work(w->t)) >= 0)
+ 		w->t->func(w->t->data, i, w - w->t->w);
+-	pthread_exit(0);
++	// pthread_exit(0);
+ }
+ 
+ void kt_for(int n_threads, void (*func)(void*,long,int), void *data, long n)
+@@ -56,8 +56,9 @@ void kt_for(int n_threads, void (*func)(void*,long,int), void *data, long n)
+ 	tid = (pthread_t*)alloca(n_threads * sizeof(pthread_t));
+ 	for (i = 0; i < n_threads; ++i)
+ 		t.w[i].t = &t, t.w[i].i = i;
+-	for (i = 0; i < n_threads; ++i) pthread_create(&tid[i], 0, ktf_worker, &t.w[i]);
+-	for (i = 0; i < n_threads; ++i) pthread_join(tid[i], 0);
++	// for (i = 0; i < n_threads; ++i) pthread_create(&tid[i], 0, ktf_worker, &t.w[i]);
++	// for (i = 0; i < n_threads; ++i) pthread_join(tid[i], 0);
++    ktf_worker(&t.w[0]);
+ }
+ 
+ /*****************
+diff --git a/Tool_src/bwa-0.7.17/main.c b/Tool_src/bwa-0.7.17/main.c
+index 50ae755..a00fc52 100644
+--- a/Tool_src/bwa-0.7.17/main.c
++++ b/Tool_src/bwa-0.7.17/main.c
+@@ -7,25 +7,25 @@
+ #define PACKAGE_VERSION "0.7.17-r1188"
+ #endif
+ 
+-int bwa_fa2pac(int argc, char *argv[]);
+-int bwa_pac2bwt(int argc, char *argv[]);
+-int bwa_bwtupdate(int argc, char *argv[]);
+-int bwa_bwt2sa(int argc, char *argv[]);
++// int bwa_fa2pac(int argc, char *argv[]);
++// int bwa_pac2bwt(int argc, char *argv[]);
++// int bwa_bwtupdate(int argc, char *argv[]);
++// int bwa_bwt2sa(int argc, char *argv[]);
+ int bwa_index(int argc, char *argv[]);
+-int bwt_bwtgen_main(int argc, char *argv[]);
++// int bwt_bwtgen_main(int argc, char *argv[]);
+ 
+-int bwa_aln(int argc, char *argv[]);
+-int bwa_sai2sam_se(int argc, char *argv[]);
+-int bwa_sai2sam_pe(int argc, char *argv[]);
++// int bwa_aln(int argc, char *argv[]);
++// int bwa_sai2sam_se(int argc, char *argv[]);
++// int bwa_sai2sam_pe(int argc, char *argv[]);
+ 
+-int bwa_bwtsw2(int argc, char *argv[]);
++// int bwa_bwtsw2(int argc, char *argv[]);
+ 
+-int main_fastmap(int argc, char *argv[]);
++// int main_fastmap(int argc, char *argv[]);
+ int main_mem(int argc, char *argv[]);
+-int main_shm(int argc, char *argv[]);
++// int main_shm(int argc, char *argv[]);
+ 
+-int main_pemerge(int argc, char *argv[]);
+-int main_maxk(int argc, char *argv[]);
++// int main_pemerge(int argc, char *argv[]);
++// int main_maxk(int argc, char *argv[]);
+ 	
+ static int usage()
+ {
+@@ -36,19 +36,19 @@ static int usage()
+ 	fprintf(stderr, "Usage:   bwa <command> [options]\n\n");
+ 	fprintf(stderr, "Command: index         index sequences in the FASTA format\n");
+ 	fprintf(stderr, "         mem           BWA-MEM algorithm\n");
+-	fprintf(stderr, "         fastmap       identify super-maximal exact matches\n");
+-	fprintf(stderr, "         pemerge       merge overlapping paired ends (EXPERIMENTAL)\n");
+-	fprintf(stderr, "         aln           gapped/ungapped alignment\n");
+-	fprintf(stderr, "         samse         generate alignment (single ended)\n");
+-	fprintf(stderr, "         sampe         generate alignment (paired ended)\n");
+-	fprintf(stderr, "         bwasw         BWA-SW for long queries\n");
+-	fprintf(stderr, "\n");
+-	fprintf(stderr, "         shm           manage indices in shared memory\n");
+-	fprintf(stderr, "         fa2pac        convert FASTA to PAC format\n");
+-	fprintf(stderr, "         pac2bwt       generate BWT from PAC\n");
+-	fprintf(stderr, "         pac2bwtgen    alternative algorithm for generating BWT\n");
+-	fprintf(stderr, "         bwtupdate     update .bwt to the new format\n");
+-	fprintf(stderr, "         bwt2sa        generate SA from BWT and Occ\n");
++	// fprintf(stderr, "         fastmap       identify super-maximal exact matches\n");
++	// fprintf(stderr, "         pemerge       merge overlapping paired ends (EXPERIMENTAL)\n");
++	// fprintf(stderr, "         aln           gapped/ungapped alignment\n");
++	// fprintf(stderr, "         samse         generate alignment (single ended)\n");
++	// fprintf(stderr, "         sampe         generate alignment (paired ended)\n");
++	// fprintf(stderr, "         bwasw         BWA-SW for long queries\n");
++	// fprintf(stderr, "\n");
++	// fprintf(stderr, "         shm           manage indices in shared memory\n");
++	// fprintf(stderr, "         fa2pac        convert FASTA to PAC format\n");
++	// fprintf(stderr, "         pac2bwt       generate BWT from PAC\n");
++	// fprintf(stderr, "         pac2bwtgen    alternative algorithm for generating BWT\n");
++	// fprintf(stderr, "         bwtupdate     update .bwt to the new format\n");
++	// fprintf(stderr, "         bwt2sa        generate SA from BWT and Occ\n");
+ 	fprintf(stderr, "\n");
+ 	fprintf(stderr,
+ "Note: To use BWA, you need to first index the genome with `bwa index'.\n"
+@@ -69,23 +69,24 @@ int main(int argc, char *argv[])
+ 	for (i = 1; i < argc; ++i) ksprintf(&pg, " %s", argv[i]);
+ 	bwa_pg = pg.s;
+ 	if (argc < 2) return usage();
+-	if (strcmp(argv[1], "fa2pac") == 0) ret = bwa_fa2pac(argc-1, argv+1);
+-	else if (strcmp(argv[1], "pac2bwt") == 0) ret = bwa_pac2bwt(argc-1, argv+1);
+-	else if (strcmp(argv[1], "pac2bwtgen") == 0) ret = bwt_bwtgen_main(argc-1, argv+1);
+-	else if (strcmp(argv[1], "bwtupdate") == 0) ret = bwa_bwtupdate(argc-1, argv+1);
+-	else if (strcmp(argv[1], "bwt2sa") == 0) ret = bwa_bwt2sa(argc-1, argv+1);
+-	else if (strcmp(argv[1], "index") == 0) ret = bwa_index(argc-1, argv+1);
+-	else if (strcmp(argv[1], "aln") == 0) ret = bwa_aln(argc-1, argv+1);
+-	else if (strcmp(argv[1], "samse") == 0) ret = bwa_sai2sam_se(argc-1, argv+1);
+-	else if (strcmp(argv[1], "sampe") == 0) ret = bwa_sai2sam_pe(argc-1, argv+1);
+-	else if (strcmp(argv[1], "bwtsw2") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
+-	else if (strcmp(argv[1], "dbwtsw") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
+-	else if (strcmp(argv[1], "bwasw") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
+-	else if (strcmp(argv[1], "fastmap") == 0) ret = main_fastmap(argc-1, argv+1);
++	// if (strcmp(argv[1], "fa2pac") == 0) ret = bwa_fa2pac(argc-1, argv+1);
++	// else if (strcmp(argv[1], "pac2bwt") == 0) ret = bwa_pac2bwt(argc-1, argv+1);
++	// else if (strcmp(argv[1], "pac2bwtgen") == 0) ret = bwt_bwtgen_main(argc-1, argv+1);
++	// else if (strcmp(argv[1], "bwtupdate") == 0) ret = bwa_bwtupdate(argc-1, argv+1);
++	// else if (strcmp(argv[1], "bwt2sa") == 0) ret = bwa_bwt2sa(argc-1, argv+1);
++	// else 
++    if (strcmp(argv[1], "index") == 0) ret = bwa_index(argc-1, argv+1);
++	// else if (strcmp(argv[1], "aln") == 0) ret = bwa_aln(argc-1, argv+1);
++	// else if (strcmp(argv[1], "samse") == 0) ret = bwa_sai2sam_se(argc-1, argv+1);
++	// else if (strcmp(argv[1], "sampe") == 0) ret = bwa_sai2sam_pe(argc-1, argv+1);
++	// else if (strcmp(argv[1], "bwtsw2") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
++	// else if (strcmp(argv[1], "dbwtsw") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
++	// else if (strcmp(argv[1], "bwasw") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
++	// else if (strcmp(argv[1], "fastmap") == 0) ret = main_fastmap(argc-1, argv+1);
+ 	else if (strcmp(argv[1], "mem") == 0) ret = main_mem(argc-1, argv+1);
+-	else if (strcmp(argv[1], "shm") == 0) ret = main_shm(argc-1, argv+1);
+-	else if (strcmp(argv[1], "pemerge") == 0) ret = main_pemerge(argc-1, argv+1);
+-	else if (strcmp(argv[1], "maxk") == 0) ret = main_maxk(argc-1, argv+1);
++	// else if (strcmp(argv[1], "shm") == 0) ret = main_shm(argc-1, argv+1);
++	// else if (strcmp(argv[1], "pemerge") == 0) ret = main_pemerge(argc-1, argv+1);
++	// else if (strcmp(argv[1], "maxk") == 0) ret = main_maxk(argc-1, argv+1);
+ 	else {
+ 		fprintf(stderr, "[main] unrecognized command '%s'\n", argv[1]);
+ 		return 1;
+diff --git a/Tool_src/bwa-0.7.17/rle.h b/Tool_src/bwa-0.7.17/rle.h
+index 0d59484..4f8946d 100644
+--- a/Tool_src/bwa-0.7.17/rle.h
++++ b/Tool_src/bwa-0.7.17/rle.h
+@@ -30,7 +30,7 @@ extern "C" {
+  *** 43+3 codec ***
+  ******************/
+ 
+-const uint8_t rle_auxtab[8];
++extern const uint8_t rle_auxtab[8];
+ 
+ #define RLE_MIN_SPACE 18
+ #define rle_nptr(block) ((uint16_t*)(block))
