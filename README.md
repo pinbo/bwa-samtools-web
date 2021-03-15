@@ -32,9 +32,11 @@ python3 -m http.server
 python -m SimpleHTTPServer
 ```
 5. More tools are available at [biowasm](https://github.com/biowasm/biowasm) repository.
+6. `bwa mem` now can accept option flags, but for some reason, it only works when putting the flags before the positional arguments. For example `bwa.exec("mem -o /data/test.sam -R @RG\\tID:foo\\tSM:bar /data/formatted_fasta.fa /data/1_S1_L001_R1_001.fastq.gz").then(d => console.log("STDOUT"d.stdout, "STDERR", d.stderr));`
 
 ## Updates
-
+- 2021-03-14: updated `samtools` and `bwa` to fix a bug that `optind` is not reset when calling main multiple times.
+- 2021-03-6: added `Subread 2.0.1` tools `subread-buildindex`, `subread-align`, and `exactSNP`.
 - 2021-02-28: replaced  `fastp 0.20.1` (add `interleaved_out` option and compiled based on https://github.com/biowasm/biowasm/tree/main/tools/fastp)
 - 2021-02-07: added `fastp 0.20.1` (JavaScript and wasm files were downloaded from https://cdn.biowasm.com/) and you can use it here: https://junli.netlify.app/apps/filter-fastq-files-with-fastp/. Turns out the author of biowasm, Robert Aboukhalil, has already built an website for fastp: http://fastq.bio/
 
