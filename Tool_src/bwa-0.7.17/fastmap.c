@@ -129,6 +129,7 @@ int main_mem(int argc, char *argv[])
 	void *ko = 0, *ko2 = 0;
 	mem_pestat_t pes[4];
 	ktp_aux_t aux;
+    FILE *outsam = 0; // output sam file name
 
 	memset(&aux, 0, sizeof(ktp_aux_t));
 	memset(pes, 0, 4 * sizeof(mem_pestat_t));
@@ -165,7 +166,7 @@ int main_mem(int argc, char *argv[])
 		else if (c == 's') opt->split_width = atoi(optarg), opt0.split_width = 1;
 		else if (c == 'G') opt->max_chain_gap = atoi(optarg), opt0.max_chain_gap = 1;
 		else if (c == 'N') opt->max_chain_extend = atoi(optarg), opt0.max_chain_extend = 1;
-		else if (c == 'o' || c == 'f') xreopen(optarg, "wb", stdout);
+		else if (c == 'o' || c == 'f') outsam = xopen(optarg, "w"); // xreopen(optarg, "wb", stdout);
 		else if (c == 'W') opt->min_chain_weight = atoi(optarg), opt0.min_chain_weight = 1;
 		else if (c == 'y') opt->max_mem_intv = atol(optarg), opt0.max_mem_intv = 1;
 		else if (c == 'C') aux.copy_comment = 1;
@@ -345,7 +346,7 @@ int main_mem(int argc, char *argv[])
 	}
 	fp = gzdopen(fd, "r");
 	aux.ks = kseq_init(fp);
-    FILE *outsam = 0;
+    // FILE *outsam = 0;
 	if (optind + 3 <= argc) {// junli change to 3 from 2
 		if (opt->flag&MEM_F_PE) {
 			if (bwa_verbose >= 2)
