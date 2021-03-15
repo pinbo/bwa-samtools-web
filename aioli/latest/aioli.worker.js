@@ -225,7 +225,7 @@ API = {
         if(role == "sender") {
             const file = FS.readFile(path);
             port.postMessage(file, [file.buffer]);
-            FS.unlink(path); // delete the file to save memory
+            // FS.unlink(path); // delete the file to save memory; did not seem to save space, so keep the files
         }
 
         // If this is the WebWorker receiving files, write the ArrayBuffer to a file
