@@ -19,6 +19,7 @@ extern unsigned char nst_nt4_table[256];
 void *kopen(const char *fn, int *_fd);
 int kclose(void *a);
 void kt_pipeline(int n_threads, void *(*func)(void*, int, void*), void *shared_data, int n_steps);
+FILE *outsam = 0;
 
 typedef struct {
 	kseq_t *ks, *ks2;
@@ -35,7 +36,7 @@ typedef struct {
 	bseq1_t *seqs;
 } ktp_data_t;
 
-static void *process(void *shared, int step, void *_data, FILE *outsam)
+static void *process(void *shared, int step, void *_data)
 {
 	ktp_aux_t *aux = (ktp_aux_t*)shared;
 	ktp_data_t *data = (ktp_data_t*)_data;
@@ -83,20 +84,18 @@ static void *process(void *shared, int step, void *_data, FILE *outsam)
 			free(sep[0]); free(sep[1]);
 		} else mem_process_seqs(opt, idx->bwt, idx->bns, idx->pac, aux->n_processed, data->n_seqs, data->seqs, aux->pes0);
 		aux->n_processed += data->n_seqs;
-        // fprintf(stdout, "End of Step1!\n");
 		return data;
 	} else if (step == 2) {
-        // fprintf(stdout, "Start writing alignments!\n");
 		for (i = 0; i < data->n_seqs; ++i) {
-			// if (data->seqs[i].sam) err_fputs(data->seqs[i].sam, stdout);
-            if (data->seqs[i].sam) err_fputs(data->seqs[i].sam, outsam); // write to file
-            // if (data->seqs[i].sam) fprintf(stdout, "%s\n", data->seqs[i].sam);
+			if (data->seqs[i].sam) // err_fputs(data->seqs[i].sam, stdout);
+            {
+                if (outsam) err_fputs(data->seqs[i].sam, outsam);
+                else err_fputs(data->seqs[i].sam, stdout);
+            }
 			free(data->seqs[i].name); free(data->seqs[i].comment);
 			free(data->seqs[i].seq); free(data->seqs[i].qual); free(data->seqs[i].sam);
 		}
 		free(data->seqs); free(data);
-        // fprintf(stdout, "End writing alignments!\n");
-        // fprintf(stderr, "End writing alignments!\n");
 		return 0;
 	}
 	return 0;
@@ -129,7 +128,7 @@ int main_mem(int argc, char *argv[])
 	void *ko = 0, *ko2 = 0;
 	mem_pestat_t pes[4];
 	ktp_aux_t aux;
-    FILE *outsam = 0; // output sam file name
+    outsam = 0; // reset it to 0
 
 	memset(&aux, 0, sizeof(ktp_aux_t));
 	memset(pes, 0, 4 * sizeof(mem_pestat_t));
@@ -146,7 +145,7 @@ int main_mem(int argc, char *argv[])
 		else if (c == 'B') opt->b = atoi(optarg), opt0.b = 1;
 		else if (c == 'T') opt->T = atoi(optarg), opt0.T = 1;
 		else if (c == 'U') opt->pen_unpaired = atoi(optarg), opt0.pen_unpaired = 1;
-		else if (c == 't') opt->n_threads = atoi(optarg), opt->n_threads = opt->n_threads > 1? opt->n_threads : 1;
+		else if (c == 't') opt->n_threads = 1; //atoi(optarg), opt->n_threads = opt->n_threads > 1? opt->n_threads : 1;
 		else if (c == 'P') opt->flag |= MEM_F_NOPAIRING;
 		else if (c == 'a') opt->flag |= MEM_F_ALL;
 		else if (c == 'p') opt->flag |= MEM_F_PE | MEM_F_SMARTPE;
@@ -242,7 +241,7 @@ int main_mem(int argc, char *argv[])
 	}
 
 	if (opt->n_threads < 1) opt->n_threads = 1;
-	if (optind + 1 >= argc || optind + 4 < argc) {
+	if (optind + 1 >= argc || optind + 3 < argc) {
 		fprintf(stderr, "\n");
 		fprintf(stderr, "Usage: bwa mem [options] <idxbase> <in1.fq> [in2.fq]\n\n");
 		fprintf(stderr, "Algorithm options:\n\n");
@@ -252,6 +251,7 @@ int main_mem(int argc, char *argv[])
 		fprintf(stderr, "       -d INT        off-diagonal X-dropoff [%d]\n", opt->zdrop);
 		fprintf(stderr, "       -r FLOAT      look for internal seeds inside a seed longer than {-k} * FLOAT [%g]\n", opt->split_factor);
 		fprintf(stderr, "       -y INT        seed occurrence for the 3rd round seeding [%ld]\n", (long)opt->max_mem_intv);
+//		fprintf(stderr, "       -s INT        look for internal seeds inside a seed with less than INT occ [%d]\n", opt->split_width);
 		fprintf(stderr, "       -c INT        skip seeds with more than INT occurrences [%d]\n", opt->max_occ);
 		fprintf(stderr, "       -D FLOAT      drop chains shorter than FLOAT fraction of the longest overlapping chain [%.2f]\n", opt->drop_ratio);
 		fprintf(stderr, "       -W INT        discard a chain if seeded bases shorter than INT [0]\n");
@@ -330,7 +330,7 @@ int main_mem(int argc, char *argv[])
 	} else update_a(opt, &opt0);
 	bwa_fill_scmat(opt->a, opt->b, opt->mat);
 
-	aux.idx = bwa_idx_load_from_shm(argv[optind]); // index position is optind
+	aux.idx = bwa_idx_load_from_shm(argv[optind]);
 	if (aux.idx == 0) {
 		if ((aux.idx = bwa_idx_load(argv[optind], BWA_IDX_ALL)) == 0) return 1; // FIXME: memory leak
 	} else if (bwa_verbose >= 3)
@@ -339,20 +339,19 @@ int main_mem(int argc, char *argv[])
 		for (i = 0; i < aux.idx->bns->n_seqs; ++i)
 			aux.idx->bns->anns[i].is_alt = 0;
 
-	ko = kopen(argv[optind + 1], &fd); // 1st fq file
+	ko = kopen(argv[optind + 1], &fd);
 	if (ko == 0) {
 		if (bwa_verbose >= 1) fprintf(stderr, "[E::%s] fail to open file `%s'.\n", __func__, argv[optind + 1]);
 		return 1;
 	}
 	fp = gzdopen(fd, "r");
 	aux.ks = kseq_init(fp);
-    // FILE *outsam = 0;
-	if (optind + 3 <= argc) {// junli change to 3 from 2
+	if (optind + 2 < argc) {
 		if (opt->flag&MEM_F_PE) {
 			if (bwa_verbose >= 2)
 				fprintf(stderr, "[W::%s] when '-p' is in use, the second query file is ignored.\n", __func__);
 		} else {
-			ko2 = kopen(argv[optind + 2], &fd2); // 2end fq file
+			ko2 = kopen(argv[optind + 2], &fd2);
 			if (ko2 == 0) {
 				if (bwa_verbose >= 1) fprintf(stderr, "[E::%s] fail to open file `%s'.\n", __func__, argv[optind + 2]);
 				return 1;
@@ -361,39 +360,16 @@ int main_mem(int argc, char *argv[])
 			aux.ks2 = kseq_init(fp2);
 			opt->flag |= MEM_F_PE;
 		}
-	    if (optind + 3 < argc) { // there is argument for output
-            // xreopen(argv[optind + 3], "wb", stdout);// output file name 
-            outsam = xopen(argv[optind + 3], "w");
-            // add read group line @RG below with ID and SM equal to outfile name
-            char *str = 0;
-            str = calloc(strlen(argv[optind + 3]) * 2 + 14, 1);
-            strcpy (str,"@RG\\tID:");
-            strcat (str,argv[optind + 3]);
-            strcat (str,"\\tSM:");
-            strcat (str,argv[optind + 3]);
-            fprintf(stderr, "RG line str is: %s\n", str);
-            rg_line = bwa_set_rg(str);
-            fprintf(stderr, "RG line rg_line is: %s\n", rg_line);
-            if (rg_line) {
-                hdr_line = bwa_insert_header(rg_line, hdr_line);
-                free(rg_line);
-            }
-            free(str);
-
-        }
-    }
-	bwa_print_sam_hdr(aux.idx->bns, hdr_line, outsam);
+	}
+    if (outsam) bwa_print_sam_hdr(aux.idx->bns, hdr_line, outsam);
+	else bwa_print_sam_hdr(aux.idx->bns, hdr_line, stdout);
 	aux.actual_chunk_size = fixed_chunk_size > 0? fixed_chunk_size : opt->chunk_size * opt->n_threads;
 	// kt_pipeline(no_mt_io? 1 : 2, process, &aux, 3);
-    // junli added without using pthread, because I just use 1 thread
-    ktp_data_t *mydata;
-    mydata = calloc(1, sizeof(ktp_data_t));
-    mydata = process(&aux, 0, mydata, outsam);
-    process(&aux, 1, mydata, outsam);
-    process(&aux, 2, mydata, outsam);
-    err_fflush(outsam);
-    err_fclose(outsam);
-
+    kt_pipeline(1, process, &aux, 3);
+    if (outsam){
+        err_fflush(outsam);
+        err_fclose(outsam);
+    }
 	free(hdr_line);
 	free(opt);
 	bwa_idx_destroy(aux.idx);
