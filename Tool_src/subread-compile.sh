@@ -14,7 +14,7 @@ emcc -O3 exactSNP.o -o exactSNP.html -s FORCE_FILESYSTEM=1 -s EXTRA_EXPORTED_RUN
 ## modifications
 git log
 # git diff old-git new-git folder
-git diff ebd303896564b928572d78f63a1978fb78f6939f a9dea826c07c6354778ed396586b7dc62021da9e src/ > patch_made_for_subread.txt
+git diff ebd303896564b928572d78f63a1978fb78f6939f 0a57c41f4f904c2b99490a09eea07ca42ef2b03d subread-2.0.1/src/ > subread.patch.txt
 # index-builder.c
 	free_mem = 1.5*1024*1024*1024;
     total_mem = 2.*1024*1024*1024;
