@@ -14,7 +14,7 @@ emcc -O2 bwa2.o -o ../build/bwa2.html -s FORCE_FILESYSTEM=1 -s EXTRA_EXPORTED_RU
 
 # make patch
 # git diff old-git new-git folder
-git diff 122146e0086857630d40e216a21280711482d899 f80267ae13be4b9e1b8462f8907858182664ccf7 bwa-0.7.17/ > bwa.patch.txt
+git diff 122146e0086857630d40e216a21280711482d899 305ac46b82484635bf3d845c7adee31c37692245 bwa-0.7.17/ > bwa.patch.txt
 
 
 
