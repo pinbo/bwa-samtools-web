@@ -2349,7 +2349,7 @@ int write_indel_final_results(global_context_t * global_context)
 		}
 
 		//assert(event_body -> event_small_side < event_body -> event_large_side );
-		locate_gene_position( event_body -> event_small_side , &global_context -> chromosome_table, &chro_name, &chro_pos);
+		locate_gene_position( event_body -> event_small_side+1 , &global_context -> chromosome_table, &chro_name, &chro_pos); // JZ event_small_side +1
 
 		// VCF format: chr21  1000001  .   AACC  AAGGGGGCC  29  .  INDEL;DP=20
 		if(event_body -> event_type == CHRO_EVENT_TYPE_INDEL || event_body -> event_type == CHRO_EVENT_TYPE_LONG_INDEL)
@@ -2357,12 +2357,12 @@ int write_indel_final_results(global_context_t * global_context)
 			ref_bases[0]=0;
 			alt_bases[0]=0;
 
-			gene_value_index_t * current_index = find_current_value_index(global_context , event_body -> event_small_side-1 , max(0, event_body -> indel_length) + 2);
+			gene_value_index_t * current_index = find_current_value_index(global_context , event_body -> event_small_side , max(0, event_body -> indel_length) + 2); // JZ event_small_side +1
 			if(current_index)
 			{
 				int rlen = max(0, event_body -> indel_length) + 2;
 				assert(rlen<900);
-				gvindex_get_string(ref_bases, current_index, event_body -> event_small_side-1 , rlen, 0);
+				gvindex_get_string(ref_bases, current_index, event_body -> event_small_side , rlen, 0); // JZ event_small_side +1
 				ref_bases[rlen] = 0;
 
 				if(event_body -> indel_length > 0)  // deletion
@@ -2386,7 +2386,8 @@ int write_indel_final_results(global_context_t * global_context)
 				else	event_body -> event_quality = 1;
 
 			}
-			int write_len = fprintf(ofp, "%s\t%u\t.\t%s\t%s\t%d\t.\tINDEL;DP=%d;SR=%d\n", chro_name, chro_pos, ref_bases, alt_bases, (int)(max(1, 250 + 10*log(event_body -> event_quality)/log(10))), event_body -> final_counted_reads + event_body -> anti_supporting_reads, event_body -> final_counted_reads);
+			// int write_len = fprintf(ofp, "%s\t%u\t.\t%s\t%s\t%d\t.\tINDEL;DP=%d;SR=%d\n", chro_name, chro_pos, ref_bases, alt_bases, (int)(max(1, 250 + 10*log(event_body -> event_quality)/log(10))), event_body -> final_counted_reads + event_body -> anti_supporting_reads, event_body -> final_counted_reads);
+            int write_len = fprintf(ofp, "%s\t%u\t.\t%s\t%s\t%d\t.\tINDEL;DP=%d;SR=%d\n", chro_name, chro_pos, ref_bases, alt_bases, (int)(max(1, 250 + 10*log(event_body -> event_quality)/log(10))), event_body -> anti_supporting_reads, event_body -> final_counted_reads); // JZ changed: seems anti_supporting_reads is the total coverage
 			if(write_len < 10) disk_is_full = 1;
 		}
 
