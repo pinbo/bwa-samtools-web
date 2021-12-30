@@ -1,0 +1,226 @@
+diff --git a/Tool_src/fastp-0.20.1/Makefile b/Tool_src/fastp-0.20.1/Makefile
+index 5c6b022..b7a5900 100644
+--- a/Tool_src/fastp-0.20.1/Makefile
++++ b/Tool_src/fastp-0.20.1/Makefile
+@@ -10,12 +10,12 @@ LIBRARY_DIRS ?=
+ SRC := $(wildcard ${DIR_SRC}/*.cpp)
+ OBJ := $(patsubst %.cpp,${DIR_OBJ}/%.o,$(notdir ${SRC}))
+ 
+-TARGET := fastp.o
++TARGET := fastp
+ 
+ BIN_TARGET := ${TARGET}
+ 
+ CXX ?= g++
+-CXXFLAGS := -std=c++11 -g -O3 -I${DIR_INC} $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir)) ${CXXFLAGS} -s USE_ZLIB=1
++CXXFLAGS := -std=c++11 -O3 -I${DIR_INC} $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir)) ${CXXFLAGS} -s USE_ZLIB=1
+ LIBS := -lz -lpthread
+ LD_FLAGS := $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) $(LIBS) $(LD_FLAGS)
+ 
+diff --git a/Tool_src/fastp-0.20.1/src/duplicate.cpp b/Tool_src/fastp-0.20.1/src/duplicate.cpp
+index a48c4a2..4b752cc 100644
+--- a/Tool_src/fastp-0.20.1/src/duplicate.cpp
++++ b/Tool_src/fastp-0.20.1/src/duplicate.cpp
+@@ -18,6 +18,7 @@ Duplicate::Duplicate(Options* opt) {
+ Duplicate::~Duplicate(){
+     delete[] mDups;
+     delete[] mCounts;
++    delete[] mGC;
+ }
+ 
+ uint64 Duplicate::seq2int(const char* data, int start, int keylen, bool& valid) {
+diff --git a/Tool_src/fastp-0.20.1/src/filterresult.cpp b/Tool_src/fastp-0.20.1/src/filterresult.cpp
+index e26540c..b407e53 100644
+--- a/Tool_src/fastp-0.20.1/src/filterresult.cpp
++++ b/Tool_src/fastp-0.20.1/src/filterresult.cpp
+@@ -19,7 +19,7 @@ FilterResult::FilterResult(Options* opt, bool paired){
+ }
+ 
+ FilterResult::~FilterResult() {
+-    delete mCorrectionMatrix;
++    delete[] mCorrectionMatrix;
+ }
+ 
+ void FilterResult::addFilterResult(int result, int readNum) {
+diff --git a/Tool_src/fastp-0.20.1/src/peprocessor.cpp b/Tool_src/fastp-0.20.1/src/peprocessor.cpp
+index dc54e0f..530ec62 100644
+--- a/Tool_src/fastp-0.20.1/src/peprocessor.cpp
++++ b/Tool_src/fastp-0.20.1/src/peprocessor.cpp
+@@ -40,7 +40,9 @@ PairEndProcessor::PairEndProcessor(Options* opt){
+ }
+ 
+ PairEndProcessor::~PairEndProcessor() {
+-    delete mInsertSizeHist;
++    delete mFilter; // JZ
++    delete mUmiProcessor; // JZ
++    delete[] mInsertSizeHist;
+     if(mDuplicate) {
+         delete mDuplicate;
+         mDuplicate = NULL;
+@@ -297,6 +299,8 @@ bool PairEndProcessor::process(){
+     if(!mOptions->split.enabled)
+         closeOutput();
+ 
++    destroyPackRepository();
++
+     return true;
+ }
+ 
+@@ -584,7 +588,7 @@ bool PairEndProcessor::processPairEnd(ReadPairPack* pack, ThreadConfig* config){
+         config->addMergedPairs(mergedCount);
+     }
+ 
+-    delete pack->data;
++    delete[] pack->data;
+     delete pack;
+ 
+     return true;
+@@ -619,7 +623,7 @@ void PairEndProcessor::initPackRepository() {
+ }
+ 
+ void PairEndProcessor::destroyPackRepository() {
+-    delete mRepo.packBuffer;
++    delete[] mRepo.packBuffer;
+     mRepo.packBuffer = NULL;
+ }
+ 
+diff --git a/Tool_src/fastp-0.20.1/src/seprocessor.cpp b/Tool_src/fastp-0.20.1/src/seprocessor.cpp
+index 07d9a5b..b83c3c6 100644
+--- a/Tool_src/fastp-0.20.1/src/seprocessor.cpp
++++ b/Tool_src/fastp-0.20.1/src/seprocessor.cpp
+@@ -34,6 +34,7 @@ SingleEndProcessor::~SingleEndProcessor() {
+         delete mDuplicate;
+         mDuplicate = NULL;
+     }
++    delete mUmiProcessor; // JZ
+ }
+ 
+ void SingleEndProcessor::initOutput() {
+@@ -191,6 +192,8 @@ bool SingleEndProcessor::process(){
+     if(!mOptions->split.enabled)
+         closeOutput();
+ 
++    destroyPackRepository(); // JZ added
++
+     return true;
+ }
+ 
+@@ -303,7 +306,7 @@ bool SingleEndProcessor::processSingleEnd(ReadPack* pack, ThreadConfig* config){
+     else
+         config->markProcessed(pack->count);
+ 
+-    delete pack->data;
++    delete[] pack->data;
+     delete pack;
+ 
+     return true;
+@@ -319,7 +322,7 @@ void SingleEndProcessor::initPackRepository() {
+ }
+ 
+ void SingleEndProcessor::destroyPackRepository() {
+-    delete mRepo.packBuffer;
++    delete[] mRepo.packBuffer;
+     mRepo.packBuffer = NULL;
+ }
+ 
+diff --git a/Tool_src/fastp-0.20.1/src/stats.cpp b/Tool_src/fastp-0.20.1/src/stats.cpp
+index 63a7ac2..af85207 100644
+--- a/Tool_src/fastp-0.20.1/src/stats.cpp
++++ b/Tool_src/fastp-0.20.1/src/stats.cpp
+@@ -108,31 +108,31 @@ void Stats::extendBuffer(int newBufLen){
+ 
+ Stats::~Stats() {
+     for(int i=0; i<8; i++){
+-        delete mCycleQ30Bases[i];
++        delete[] mCycleQ30Bases[i];
+         mCycleQ30Bases[i] = NULL;
+ 
+-        delete mCycleQ20Bases[i];
++        delete[] mCycleQ20Bases[i];
+         mCycleQ20Bases[i] = NULL;
+ 
+-        delete mCycleBaseContents[i];
++        delete[] mCycleBaseContents[i];
+         mCycleBaseContents[i] = NULL;
+ 
+-        delete mCycleBaseQual[i];
++        delete[] mCycleBaseQual[i];
+         mCycleBaseQual[i] = NULL;
+     }
+ 
+-    delete mCycleTotalBase;
+-    delete mCycleTotalQual;
++    delete[] mCycleTotalBase;
++    delete[] mCycleTotalQual;
+ 
+     // delete memory of curves
+     map<string, double*>::iterator iter;
+     for(iter = mQualityCurves.begin(); iter != mQualityCurves.end(); iter++) {
+-        delete iter->second;
++        delete[] iter->second;
+     }
+     for(iter = mContentCurves.begin(); iter != mContentCurves.end(); iter++) {
+-        delete iter->second;
++        delete[] iter->second;
+     }
+-    delete mKmer;
++    delete[] mKmer;
+ 
+     deleteOverRepSeqDist();
+ }
+diff --git a/Tool_src/fastp-0.20.1/src/threadconfig.cpp b/Tool_src/fastp-0.20.1/src/threadconfig.cpp
+index 5c376e1..a40526b 100644
+--- a/Tool_src/fastp-0.20.1/src/threadconfig.cpp
++++ b/Tool_src/fastp-0.20.1/src/threadconfig.cpp
+@@ -25,6 +25,11 @@ ThreadConfig::ThreadConfig(Options* opt, int threadId, bool paired){
+ 
+ ThreadConfig::~ThreadConfig() {
+     cleanup();
++    delete mFilterResult;
++    delete mPreStats1;
++    delete mPostStats1;
++    if (mPreStats2) delete mPreStats2;
++    if (mPostStats2) delete mPostStats2;
+ }
+ 
+ void ThreadConfig::cleanup() {
+diff --git a/Tool_src/fastp-0.20.1/src/writer.cpp b/Tool_src/fastp-0.20.1/src/writer.cpp
+index 1737ae2..b849a24 100644
+--- a/Tool_src/fastp-0.20.1/src/writer.cpp
++++ b/Tool_src/fastp-0.20.1/src/writer.cpp
+@@ -113,9 +113,9 @@ void Writer::close(){
+ 		if (mOutStream->is_open()){
+ 			mOutStream->flush();
+ 			//TODO: following two lines will cause crash
+-			//mOutStream->close();
+-			//delete mOutStream;
+-			mOutStream = NULL;
++			mOutStream->close();
++			delete mOutStream;
++			// mOutStream = NULL;
+ 		}
+ 	}
+ }
+diff --git a/Tool_src/fastp-0.20.1/src/writerthread.cpp b/Tool_src/fastp-0.20.1/src/writerthread.cpp
+index 8104567..289ecd6 100644
+--- a/Tool_src/fastp-0.20.1/src/writerthread.cpp
++++ b/Tool_src/fastp-0.20.1/src/writerthread.cpp
+@@ -22,7 +22,8 @@ WriterThread::WriterThread(Options* opt, string filename){
+ 
+ WriterThread::~WriterThread() {
+     cleanup();
+-    delete mRingBuffer;
++    delete[] mRingBuffer;
++    delete[] mRingBufferSizes;
+ }
+ 
+ bool WriterThread::isCompleted() 
+@@ -42,7 +43,7 @@ void WriterThread::output(){
+     while( mOutputCounter < mInputCounter) 
+     {
+         mWriter1->write(mRingBuffer[mOutputCounter], mRingBufferSizes[mOutputCounter]);
+-        delete mRingBuffer[mOutputCounter];
++        delete[] mRingBuffer[mOutputCounter];
+         mRingBuffer[mOutputCounter] = NULL;
+         mOutputCounter++;
+     }
