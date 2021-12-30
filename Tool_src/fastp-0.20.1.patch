@@ -1,26 +1,27 @@
-diff --git a/Tool_src/fastp-0.20.1/Makefile b/Tool_src/fastp-0.20.1/Makefile
-index 5c6b022..b7a5900 100644
---- a/Tool_src/fastp-0.20.1/Makefile
-+++ b/Tool_src/fastp-0.20.1/Makefile
-@@ -10,12 +10,12 @@ LIBRARY_DIRS ?=
- SRC := $(wildcard ${DIR_SRC}/*.cpp)
- OBJ := $(patsubst %.cpp,${DIR_OBJ}/%.o,$(notdir ${SRC}))
- 
--TARGET := fastp.o
-+TARGET := fastp
- 
+diff --git a/Makefile b/Makefile
+index afc7e9e..b7a5900 100644
+--- a/Makefile
++++ b/Makefile
+@@ -15,13 +15,13 @@ TARGET := fastp
  BIN_TARGET := ${TARGET}
  
  CXX ?= g++
--CXXFLAGS := -std=c++11 -g -O3 -I${DIR_INC} $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir)) ${CXXFLAGS} -s USE_ZLIB=1
+-CXXFLAGS := -std=c++11 -g -O3 -I${DIR_INC} $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir)) ${CXXFLAGS}
 +CXXFLAGS := -std=c++11 -O3 -I${DIR_INC} $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir)) ${CXXFLAGS} -s USE_ZLIB=1
  LIBS := -lz -lpthread
  LD_FLAGS := $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) $(LIBS) $(LD_FLAGS)
  
-diff --git a/Tool_src/fastp-0.20.1/src/duplicate.cpp b/Tool_src/fastp-0.20.1/src/duplicate.cpp
+ 
+ ${BIN_TARGET}:${OBJ}
+-	$(CXX) $(OBJ) -o $@ $(LD_FLAGS)
++	$(CXX) -r $(OBJ) -o $@ $(LD_FLAGS)
+ 
+ ${DIR_OBJ}/%.o:${DIR_SRC}/%.cpp make_obj_dir
+ 	$(CXX) -c $< -o $@ $(CXXFLAGS)
+diff --git a/src/duplicate.cpp b/src/duplicate.cpp
 index a48c4a2..4b752cc 100644
---- a/Tool_src/fastp-0.20.1/src/duplicate.cpp
-+++ b/Tool_src/fastp-0.20.1/src/duplicate.cpp
+--- a/src/duplicate.cpp
++++ b/src/duplicate.cpp
 @@ -18,6 +18,7 @@ Duplicate::Duplicate(Options* opt) {
  Duplicate::~Duplicate(){
      delete[] mDups;
@@ -29,10 +30,10 @@ index a48c4a2..4b752cc 100644
  }
  
  uint64 Duplicate::seq2int(const char* data, int start, int keylen, bool& valid) {
-diff --git a/Tool_src/fastp-0.20.1/src/filterresult.cpp b/Tool_src/fastp-0.20.1/src/filterresult.cpp
+diff --git a/src/filterresult.cpp b/src/filterresult.cpp
 index e26540c..b407e53 100644
---- a/Tool_src/fastp-0.20.1/src/filterresult.cpp
-+++ b/Tool_src/fastp-0.20.1/src/filterresult.cpp
+--- a/src/filterresult.cpp
++++ b/src/filterresult.cpp
 @@ -19,7 +19,7 @@ FilterResult::FilterResult(Options* opt, bool paired){
  }
  
@@ -42,10 +43,84 @@ index e26540c..b407e53 100644
  }
  
  void FilterResult::addFilterResult(int result, int readNum) {
-diff --git a/Tool_src/fastp-0.20.1/src/peprocessor.cpp b/Tool_src/fastp-0.20.1/src/peprocessor.cpp
-index dc54e0f..530ec62 100644
---- a/Tool_src/fastp-0.20.1/src/peprocessor.cpp
-+++ b/Tool_src/fastp-0.20.1/src/peprocessor.cpp
+diff --git a/src/main.cpp b/src/main.cpp
+index e15536c..e2fe0e5 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -42,7 +42,7 @@ int main(int argc, char* argv[]){
+     cmd.add<string>("merged_out", 0, "in the merging mode, specify the file name to store merged output, or specify --stdout to stream the merged output", false, "");
+     cmd.add("include_unmerged", 0, "in the merging mode, write the unmerged or unpaired reads to the file specified by --merge. Disabled by default.");
+     cmd.add("phred64", '6', "indicate the input is using phred64 scoring (it'll be converted to phred33, so the output will still be phred33)");
+-    cmd.add<int>("compression", 'z', "compression level for gzip output (1 ~ 9). 1 is fastest, 9 is smallest, default is 4.", false, 4);
++    cmd.add<int>("compression", 'z', "compression level for gzip output (1 ~ 9). 1 is fastest, 9 is smallest, default is 6.", false, 6);
+     cmd.add("stdin", 0, "input from STDIN. If the STDIN is interleaved paired-end FASTQ, please also add --interleaved_in.");
+     cmd.add("stdout", 0, "stream passing-filters reads to STDOUT. This option will result in interleaved FASTQ output for paired-end output. Disabled by default.");
+     cmd.add("interleaved_in", 0, "indicate that <in1> is an interleaved FASTQ which contains both read1 and read2. Disabled by default.");
+@@ -50,6 +50,8 @@ int main(int argc, char* argv[]){
+     cmd.add("dont_overwrite", 0, "don't overwrite existing files. Overwritting is allowed by default.");
+     cmd.add("fix_mgi_id", 0, "the MGI FASTQ ID format is not compatible with many BAM operation tools, enable this option to fix it.");
+     cmd.add("verbose", 'V', "output verbose log information (i.e. when every 1M reads are processed).");
++    // JZ added
++    cmd.add("interleaved_out", 0, "make interleaved FASTQ output file for paired-end output. Disabled by default.");
+ 
+     // adapter
+     cmd.add("disable_adapter_trimming", 'A', "adapter trimming is enabled by default. If this option is specified, adapter trimming is disabled");
+@@ -133,7 +135,7 @@ int main(int argc, char* argv[]){
+     cmd.add<string>("report_title", 'R', "should be quoted with \' or \", default is \"fastp report\"", false, "fastp report");
+ 
+     // threading
+-    cmd.add<int>("thread", 'w', "worker thread number, default is 2", false, 2);
++    cmd.add<int>("thread", 'w', "worker thread number, default is 1", false, 1);
+ 
+     // split the output
+     cmd.add<int>("split", 's', "split output by limiting total split file number with this option (2~999), a sequential number prefix will be added to output name ( 0001.out.fq, 0002.out.fq...), disabled by default", false, 0);
+@@ -179,6 +181,8 @@ int main(int argc, char* argv[]){
+     opt.interleavedInput = cmd.exist("interleaved_in");
+     opt.verbose = cmd.exist("verbose");
+     opt.fixMGI = cmd.exist("fix_mgi_id");
++    // JZ
++    opt.interleavedOutput = cmd.exist("interleaved_out");
+ 
+     // merge PE
+     opt.merge.enabled = cmd.exist("merge");
+diff --git a/src/options.cpp b/src/options.cpp
+index 4c97438..73debbb 100644
+--- a/src/options.cpp
++++ b/src/options.cpp
+@@ -19,6 +19,7 @@ Options::Options(){
+     outputToSTDOUT = false;
+     readsToProcess = 0;
+     interleavedInput = false;
++    interleavedOutput = false; // JZ
+     insertSizeMax = 512;
+     overlapRequire = 30;
+     overlapDiffLimit = 5;
+@@ -168,7 +169,7 @@ bool Options::validate() {
+     }
+ 
+     if(!in2.empty() || interleavedInput) {
+-        if(!out1.empty() && out2.empty()) {
++        if(!out1.empty() && out2.empty() && !interleavedOutput) { // JZ
+             error_exit("paired-end input, read1 output should be specified together with read2 output (--out2 needed) ");
+         }
+         if(out1.empty() && !out2.empty()) {
+diff --git a/src/options.h b/src/options.h
+index 77f6726..3fc9f67 100644
+--- a/src/options.h
++++ b/src/options.h
+@@ -323,6 +323,8 @@ public:
+     bool outputToSTDOUT;
+     // the input R1 file is interleaved
+     bool interleavedInput;
++    // output 1 is interleaved
++    bool interleavedOutput;
+     // only process first N reads
+     int readsToProcess;
+     // fix the MGI ID tailing issue
+diff --git a/src/peprocessor.cpp b/src/peprocessor.cpp
+index 44443ea..530ec62 100644
+--- a/src/peprocessor.cpp
++++ b/src/peprocessor.cpp
 @@ -40,7 +40,9 @@ PairEndProcessor::PairEndProcessor(Options* opt){
  }
  
@@ -57,7 +132,153 @@ index dc54e0f..530ec62 100644
      if(mDuplicate) {
          delete mDuplicate;
          mDuplicate = NULL;
-@@ -297,6 +299,8 @@ bool PairEndProcessor::process(){
+@@ -111,7 +113,8 @@ bool PairEndProcessor::process(){
+         initOutput();
+ 
+     initPackRepository();
+-    std::thread producer(std::bind(&PairEndProcessor::producerTask, this));
++    //std::thread producer(std::bind(&PairEndProcessor::producerTask, this));
++    PairEndProcessor::producerTask();
+ 
+     //TODO: get the correct cycles
+     int cycle = 151;
+@@ -121,49 +124,56 @@ bool PairEndProcessor::process(){
+         initConfig(configs[t]);
+     }
+ 
+-    std::thread** threads = new thread*[mOptions->thread];
+-    for(int t=0; t<mOptions->thread; t++){
+-        threads[t] = new std::thread(std::bind(&PairEndProcessor::consumerTask, this, configs[t]));
+-    }
++    // std::thread** threads = new thread*[mOptions->thread];
++    // for(int t=0; t<mOptions->thread; t++){
++    //     threads[t] = new std::thread(std::bind(&PairEndProcessor::consumerTask, this, configs[t]));
++    // }
++    PairEndProcessor::consumerTask(configs[0]);
+ 
+-    std::thread* leftWriterThread = NULL;
+-    std::thread* rightWriterThread = NULL;
+-    std::thread* unpairedLeftWriterThread = NULL;
+-    std::thread* unpairedRightWriterThread = NULL;
+-    std::thread* mergedWriterThread = NULL;
+-    std::thread* failedWriterThread = NULL;
++    // std::thread* leftWriterThread = NULL;
++    // std::thread* rightWriterThread = NULL;
++    // std::thread* unpairedLeftWriterThread = NULL;
++    // std::thread* unpairedRightWriterThread = NULL;
++    // std::thread* mergedWriterThread = NULL;
++    // std::thread* failedWriterThread = NULL;
+     if(mLeftWriter)
+-        leftWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mLeftWriter));
++        // leftWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mLeftWriter));
++        PairEndProcessor::writeTask(mLeftWriter);
+     if(mRightWriter)
+-        rightWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mRightWriter));
++        // rightWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mRightWriter));
++        PairEndProcessor::writeTask(mRightWriter);
+     if(mUnpairedLeftWriter)
+-        unpairedLeftWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mUnpairedLeftWriter));
++        // unpairedLeftWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mUnpairedLeftWriter));
++        PairEndProcessor::writeTask(mUnpairedLeftWriter);
+     if(mUnpairedRightWriter)
+-        unpairedRightWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mUnpairedRightWriter));
++        // unpairedRightWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mUnpairedRightWriter));
++        PairEndProcessor::writeTask(mUnpairedRightWriter);
+     if(mMergedWriter)
+-        mergedWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mMergedWriter));
++        // mergedWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mMergedWriter));
++        PairEndProcessor::writeTask(mMergedWriter);
+     if(mFailedWriter)
+-        failedWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mFailedWriter));
+-
+-    producer.join();
+-    for(int t=0; t<mOptions->thread; t++){
+-        threads[t]->join();
+-    }
+-
+-    if(!mOptions->split.enabled) {
+-        if(leftWriterThread)
+-            leftWriterThread->join();
+-        if(rightWriterThread)
+-            rightWriterThread->join();
+-        if(unpairedLeftWriterThread)
+-            unpairedLeftWriterThread->join();
+-        if(unpairedRightWriterThread)
+-            unpairedRightWriterThread->join();
+-        if(mergedWriterThread)
+-            mergedWriterThread->join();
+-        if(failedWriterThread)
+-            failedWriterThread->join();
+-    }
++        // failedWriterThread = new std::thread(std::bind(&PairEndProcessor::writeTask, this, mFailedWriter));
++        PairEndProcessor::writeTask(mFailedWriter);
++
++    // producer.join();
++    // for(int t=0; t<mOptions->thread; t++){
++    //     threads[t]->join();
++    // }
++
++    // if(!mOptions->split.enabled) {
++    //     if(leftWriterThread)
++    //         leftWriterThread->join();
++    //     if(rightWriterThread)
++    //         rightWriterThread->join();
++    //     if(unpairedLeftWriterThread)
++    //         unpairedLeftWriterThread->join();
++    //     if(unpairedRightWriterThread)
++    //         unpairedRightWriterThread->join();
++    //     if(mergedWriterThread)
++    //         mergedWriterThread->join();
++    //     if(failedWriterThread)
++    //         failedWriterThread->join();
++    // }
+ 
+     if(mOptions->verbose)
+         loginfo("start to generate reports\n");
+@@ -253,8 +263,8 @@ bool PairEndProcessor::process(){
+ 
+     // clean up
+     for(int t=0; t<mOptions->thread; t++){
+-        delete threads[t];
+-        threads[t] = NULL;
++        // delete threads[t];
++        // threads[t] = NULL;
+         delete configs[t];
+         configs[t] = NULL;
+     }
+@@ -270,25 +280,27 @@ bool PairEndProcessor::process(){
+         delete[] dupMeanGC;
+     }
+ 
+-    delete[] threads;
++    // delete[] threads;
+     delete[] configs;
+ 
+-    if(leftWriterThread)
+-        delete leftWriterThread;
+-    if(rightWriterThread)
+-        delete rightWriterThread;
+-    if(unpairedLeftWriterThread)
+-        delete unpairedLeftWriterThread;
+-    if(unpairedRightWriterThread)
+-        delete unpairedRightWriterThread;
+-    if(mergedWriterThread)
+-        delete mergedWriterThread;
+-    if(failedWriterThread)
+-        delete failedWriterThread;
++    // if(leftWriterThread)
++    //     delete leftWriterThread;
++    // if(rightWriterThread)
++    //     delete rightWriterThread;
++    // if(unpairedLeftWriterThread)
++    //     delete unpairedLeftWriterThread;
++    // if(unpairedRightWriterThread)
++    //     delete unpairedRightWriterThread;
++    // if(mergedWriterThread)
++    //     delete mergedWriterThread;
++    // if(failedWriterThread)
++    //     delete failedWriterThread;
+ 
      if(!mOptions->split.enabled)
          closeOutput();
  
@@ -66,7 +287,16 @@ index dc54e0f..530ec62 100644
      return true;
  }
  
-@@ -584,7 +588,7 @@ bool PairEndProcessor::processPairEnd(ReadPairPack* pack, ThreadConfig* config){
+@@ -449,7 +461,7 @@ bool PairEndProcessor::processPairEnd(ReadPairPack* pack, ThreadConfig* config){
+ 
+             if( r1 != NULL &&  result1 == PASS_FILTER && r2 != NULL && result2 == PASS_FILTER ) {
+                 
+-                if(mOptions->outputToSTDOUT && !mOptions->merge.enabled) {
++                if((mOptions->outputToSTDOUT || mOptions->interleavedOutput) && !mOptions->merge.enabled) {
+                     singleOutput += r1->toString() + r2->toString();
+                 } else {
+                     outstr1 += r1->toString();
+@@ -576,7 +588,7 @@ bool PairEndProcessor::processPairEnd(ReadPairPack* pack, ThreadConfig* config){
          config->addMergedPairs(mergedCount);
      }
  
@@ -75,7 +305,7 @@ index dc54e0f..530ec62 100644
      delete pack;
  
      return true;
-@@ -619,7 +623,7 @@ void PairEndProcessor::initPackRepository() {
+@@ -611,7 +623,7 @@ void PairEndProcessor::initPackRepository() {
  }
  
  void PairEndProcessor::destroyPackRepository() {
@@ -84,10 +314,34 @@ index dc54e0f..530ec62 100644
      mRepo.packBuffer = NULL;
  }
  
-diff --git a/Tool_src/fastp-0.20.1/src/seprocessor.cpp b/Tool_src/fastp-0.20.1/src/seprocessor.cpp
-index 07d9a5b..b83c3c6 100644
---- a/Tool_src/fastp-0.20.1/src/seprocessor.cpp
-+++ b/Tool_src/fastp-0.20.1/src/seprocessor.cpp
+@@ -818,14 +830,15 @@ void PairEndProcessor::consumerTask(ThreadConfig* config)
+ 
+ void PairEndProcessor::writeTask(WriterThread* config)
+ {
+-    while(true) {
+-        if(config->isCompleted()){
+-            // last check for possible threading related issue
+-            config->output();
+-            break;
+-        }
+-        config->output();
+-    }
++    // while(true) {
++    //     if(config->isCompleted()){
++    //         // last check for possible threading related issue
++    //         config->output();
++    //         break;
++    //     }
++    //     config->output();
++    // }
++    config->output();
+ 
+     if(mOptions->verbose) {
+         string msg = config->getFilename() + " writer finished";
+diff --git a/src/seprocessor.cpp b/src/seprocessor.cpp
+index a9c968f..b83c3c6 100644
+--- a/src/seprocessor.cpp
++++ b/src/seprocessor.cpp
 @@ -34,6 +34,7 @@ SingleEndProcessor::~SingleEndProcessor() {
          delete mDuplicate;
          mDuplicate = NULL;
@@ -96,7 +350,95 @@ index 07d9a5b..b83c3c6 100644
  }
  
  void SingleEndProcessor::initOutput() {
-@@ -191,6 +192,8 @@ bool SingleEndProcessor::process(){
+@@ -69,7 +70,8 @@ bool SingleEndProcessor::process(){
+         initOutput();
+ 
+     initPackRepository();
+-    std::thread producer(std::bind(&SingleEndProcessor::producerTask, this));
++    // std::thread producer(std::bind(&SingleEndProcessor::producerTask, this));
++    SingleEndProcessor::producerTask();
+ 
+     //TODO: get the correct cycles
+     int cycle = 151;
+@@ -79,29 +81,32 @@ bool SingleEndProcessor::process(){
+         initConfig(configs[t]);
+     }
+ 
+-    std::thread** threads = new thread*[mOptions->thread];
+-    for(int t=0; t<mOptions->thread; t++){
+-        threads[t] = new std::thread(std::bind(&SingleEndProcessor::consumerTask, this, configs[t]));
+-    }
++    // std::thread** threads = new thread*[mOptions->thread];
++    // for(int t=0; t<mOptions->thread; t++){
++    //     threads[t] = new std::thread(std::bind(&SingleEndProcessor::consumerTask, this, configs[t]));
++    // }
++    SingleEndProcessor::consumerTask(configs[0]);
+ 
+-    std::thread* leftWriterThread = NULL;
+-    std::thread* failedWriterThread = NULL;
++    // std::thread* leftWriterThread = NULL;
++    // std::thread* failedWriterThread = NULL;
+     if(mLeftWriter)
+-        leftWriterThread = new std::thread(std::bind(&SingleEndProcessor::writeTask, this, mLeftWriter));
++        // leftWriterThread = new std::thread(std::bind(&SingleEndProcessor::writeTask, this, mLeftWriter));
++        SingleEndProcessor::writeTask(mLeftWriter);
+     if(mFailedWriter)
+-        failedWriterThread = new std::thread(std::bind(&SingleEndProcessor::writeTask, this, mFailedWriter));
++        // failedWriterThread = new std::thread(std::bind(&SingleEndProcessor::writeTask, this, mFailedWriter));
++        SingleEndProcessor::writeTask(mFailedWriter);
+ 
+-    producer.join();
+-    for(int t=0; t<mOptions->thread; t++){
+-        threads[t]->join();
+-    }
++    // producer.join();
++    // for(int t=0; t<mOptions->thread; t++){
++    //     threads[t]->join();
++    // }
+ 
+-    if(!mOptions->split.enabled) {
+-        if(leftWriterThread)
+-            leftWriterThread->join();
+-        if(failedWriterThread)
+-            failedWriterThread->join();
+-    }
++    // if(!mOptions->split.enabled) {
++    //     if(leftWriterThread)
++    //         leftWriterThread->join();
++    //     if(failedWriterThread)
++    //         failedWriterThread->join();
++    // }
+ 
+     if(mOptions->verbose)
+         loginfo("start to generate reports\n");
+@@ -161,8 +166,8 @@ bool SingleEndProcessor::process(){
+ 
+     // clean up
+     for(int t=0; t<mOptions->thread; t++){
+-        delete threads[t];
+-        threads[t] = NULL;
++        // delete threads[t];
++        // threads[t] = NULL;
+         delete configs[t];
+         configs[t] = NULL;
+     }
+@@ -176,17 +181,19 @@ bool SingleEndProcessor::process(){
+         delete[] dupMeanGC;
+     }
+ 
+-    delete[] threads;
++    // delete[] threads;
+     delete[] configs;
+ 
+-    if(leftWriterThread)
+-        delete leftWriterThread;
+-    if(failedWriterThread)
+-        delete failedWriterThread;
++    // if(leftWriterThread)
++    //     delete leftWriterThread;
++    // if(failedWriterThread)
++    //     delete failedWriterThread;
+ 
      if(!mOptions->split.enabled)
          closeOutput();
  
@@ -105,7 +447,7 @@ index 07d9a5b..b83c3c6 100644
      return true;
  }
  
-@@ -303,7 +306,7 @@ bool SingleEndProcessor::processSingleEnd(ReadPack* pack, ThreadConfig* config){
+@@ -299,7 +306,7 @@ bool SingleEndProcessor::processSingleEnd(ReadPack* pack, ThreadConfig* config){
      else
          config->markProcessed(pack->count);
  
@@ -114,7 +456,7 @@ index 07d9a5b..b83c3c6 100644
      delete pack;
  
      return true;
-@@ -319,7 +322,7 @@ void SingleEndProcessor::initPackRepository() {
+@@ -315,7 +322,7 @@ void SingleEndProcessor::initPackRepository() {
  }
  
  void SingleEndProcessor::destroyPackRepository() {
@@ -123,10 +465,34 @@ index 07d9a5b..b83c3c6 100644
      mRepo.packBuffer = NULL;
  }
  
-diff --git a/Tool_src/fastp-0.20.1/src/stats.cpp b/Tool_src/fastp-0.20.1/src/stats.cpp
+@@ -514,14 +521,15 @@ void SingleEndProcessor::consumerTask(ThreadConfig* config)
+ 
+ void SingleEndProcessor::writeTask(WriterThread* config)
+ {
+-    while(true) {
+-        if(config->isCompleted()){
+-            // last check for possible threading related issue
+-            config->output();
+-            break;
+-        }
+-        config->output();
+-    }
++    // while(true) {
++    //     if(config->isCompleted()){
++    //         // last check for possible threading related issue
++    //         config->output();
++    //         break;
++    //     }
++    //     config->output();
++    // }
++    config->output();
+ 
+     if(mOptions->verbose) {
+         string msg = config->getFilename() + " writer finished";
+diff --git a/src/stats.cpp b/src/stats.cpp
 index 63a7ac2..af85207 100644
---- a/Tool_src/fastp-0.20.1/src/stats.cpp
-+++ b/Tool_src/fastp-0.20.1/src/stats.cpp
+--- a/src/stats.cpp
++++ b/src/stats.cpp
 @@ -108,31 +108,31 @@ void Stats::extendBuffer(int newBufLen){
  
  Stats::~Stats() {
@@ -168,10 +534,10 @@ index 63a7ac2..af85207 100644
  
      deleteOverRepSeqDist();
  }
-diff --git a/Tool_src/fastp-0.20.1/src/threadconfig.cpp b/Tool_src/fastp-0.20.1/src/threadconfig.cpp
+diff --git a/src/threadconfig.cpp b/src/threadconfig.cpp
 index 5c376e1..a40526b 100644
---- a/Tool_src/fastp-0.20.1/src/threadconfig.cpp
-+++ b/Tool_src/fastp-0.20.1/src/threadconfig.cpp
+--- a/src/threadconfig.cpp
++++ b/src/threadconfig.cpp
 @@ -25,6 +25,11 @@ ThreadConfig::ThreadConfig(Options* opt, int threadId, bool paired){
  
  ThreadConfig::~ThreadConfig() {
@@ -184,10 +550,10 @@ index 5c376e1..a40526b 100644
  }
  
  void ThreadConfig::cleanup() {
-diff --git a/Tool_src/fastp-0.20.1/src/writer.cpp b/Tool_src/fastp-0.20.1/src/writer.cpp
+diff --git a/src/writer.cpp b/src/writer.cpp
 index 1737ae2..b849a24 100644
---- a/Tool_src/fastp-0.20.1/src/writer.cpp
-+++ b/Tool_src/fastp-0.20.1/src/writer.cpp
+--- a/src/writer.cpp
++++ b/src/writer.cpp
 @@ -113,9 +113,9 @@ void Writer::close(){
  		if (mOutStream->is_open()){
  			mOutStream->flush();
@@ -201,10 +567,10 @@ index 1737ae2..b849a24 100644
  		}
  	}
  }
-diff --git a/Tool_src/fastp-0.20.1/src/writerthread.cpp b/Tool_src/fastp-0.20.1/src/writerthread.cpp
+diff --git a/src/writerthread.cpp b/src/writerthread.cpp
 index 8104567..289ecd6 100644
---- a/Tool_src/fastp-0.20.1/src/writerthread.cpp
-+++ b/Tool_src/fastp-0.20.1/src/writerthread.cpp
+--- a/src/writerthread.cpp
++++ b/src/writerthread.cpp
 @@ -22,7 +22,8 @@ WriterThread::WriterThread(Options* opt, string filename){
  
  WriterThread::~WriterThread() {
