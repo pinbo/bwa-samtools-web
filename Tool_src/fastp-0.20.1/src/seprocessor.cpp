@@ -34,6 +34,7 @@ SingleEndProcessor::~SingleEndProcessor() {
         delete mDuplicate;
         mDuplicate = NULL;
     }
+    delete mUmiProcessor; // JZ
 }
 
 void SingleEndProcessor::initOutput() {
@@ -191,6 +192,8 @@ bool SingleEndProcessor::process(){
     if(!mOptions->split.enabled)
         closeOutput();
 
+    destroyPackRepository(); // JZ added
+
     return true;
 }
 
@@ -303,7 +306,7 @@ bool SingleEndProcessor::processSingleEnd(ReadPack* pack, ThreadConfig* config){
     else
         config->markProcessed(pack->count);
 
-    delete pack->data;
+    delete[] pack->data;
     delete pack;
 
     return true;
@@ -319,7 +322,7 @@ void SingleEndProcessor::initPackRepository() {
 }
 
 void SingleEndProcessor::destroyPackRepository() {
-    delete mRepo.packBuffer;
+    delete[] mRepo.packBuffer;
     mRepo.packBuffer = NULL;
 }
 

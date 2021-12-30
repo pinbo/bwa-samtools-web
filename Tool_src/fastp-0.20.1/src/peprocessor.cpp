@@ -40,7 +40,9 @@ PairEndProcessor::PairEndProcessor(Options* opt){
 }
 
 PairEndProcessor::~PairEndProcessor() {
-    delete mInsertSizeHist;
+    delete mFilter; // JZ
+    delete mUmiProcessor; // JZ
+    delete[] mInsertSizeHist;
     if(mDuplicate) {
         delete mDuplicate;
         mDuplicate = NULL;
@@ -296,6 +298,8 @@ bool PairEndProcessor::process(){
 
     if(!mOptions->split.enabled)
         closeOutput();
+
+    destroyPackRepository();
 
     return true;
 }
@@ -584,7 +588,7 @@ bool PairEndProcessor::processPairEnd(ReadPairPack* pack, ThreadConfig* config){
         config->addMergedPairs(mergedCount);
     }
 
-    delete pack->data;
+    delete[] pack->data;
     delete pack;
 
     return true;
@@ -619,7 +623,7 @@ void PairEndProcessor::initPackRepository() {
 }
 
 void PairEndProcessor::destroyPackRepository() {
-    delete mRepo.packBuffer;
+    delete[] mRepo.packBuffer;
     mRepo.packBuffer = NULL;
 }
 

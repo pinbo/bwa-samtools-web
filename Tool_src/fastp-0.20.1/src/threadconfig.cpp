@@ -25,6 +25,11 @@ ThreadConfig::ThreadConfig(Options* opt, int threadId, bool paired){
 
 ThreadConfig::~ThreadConfig() {
     cleanup();
+    delete mFilterResult;
+    delete mPreStats1;
+    delete mPostStats1;
+    if (mPreStats2) delete mPreStats2;
+    if (mPostStats2) delete mPostStats2;
 }
 
 void ThreadConfig::cleanup() {

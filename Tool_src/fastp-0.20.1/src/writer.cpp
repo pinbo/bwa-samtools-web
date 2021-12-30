@@ -113,9 +113,9 @@ void Writer::close(){
 		if (mOutStream->is_open()){
 			mOutStream->flush();
 			//TODO: following two lines will cause crash
-			//mOutStream->close();
-			//delete mOutStream;
-			mOutStream = NULL;
+			mOutStream->close();
+			delete mOutStream;
+			// mOutStream = NULL;
 		}
 	}
 }

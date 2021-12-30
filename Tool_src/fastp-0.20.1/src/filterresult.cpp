@@ -19,7 +19,7 @@ FilterResult::FilterResult(Options* opt, bool paired){
 }
 
 FilterResult::~FilterResult() {
-    delete mCorrectionMatrix;
+    delete[] mCorrectionMatrix;
 }
 
 void FilterResult::addFilterResult(int result, int readNum) {

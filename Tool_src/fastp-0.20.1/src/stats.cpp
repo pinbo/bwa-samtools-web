@@ -108,31 +108,31 @@ void Stats::extendBuffer(int newBufLen){
 
 Stats::~Stats() {
     for(int i=0; i<8; i++){
-        delete mCycleQ30Bases[i];
+        delete[] mCycleQ30Bases[i];
         mCycleQ30Bases[i] = NULL;
 
-        delete mCycleQ20Bases[i];
+        delete[] mCycleQ20Bases[i];
         mCycleQ20Bases[i] = NULL;
 
-        delete mCycleBaseContents[i];
+        delete[] mCycleBaseContents[i];
         mCycleBaseContents[i] = NULL;
 
-        delete mCycleBaseQual[i];
+        delete[] mCycleBaseQual[i];
         mCycleBaseQual[i] = NULL;
     }
 
-    delete mCycleTotalBase;
-    delete mCycleTotalQual;
+    delete[] mCycleTotalBase;
+    delete[] mCycleTotalQual;
 
     // delete memory of curves
     map<string, double*>::iterator iter;
     for(iter = mQualityCurves.begin(); iter != mQualityCurves.end(); iter++) {
-        delete iter->second;
+        delete[] iter->second;
     }
     for(iter = mContentCurves.begin(); iter != mContentCurves.end(); iter++) {
-        delete iter->second;
+        delete[] iter->second;
     }
-    delete mKmer;
+    delete[] mKmer;
 
     deleteOverRepSeqDist();
 }
