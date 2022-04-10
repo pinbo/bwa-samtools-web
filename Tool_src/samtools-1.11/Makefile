@@ -47,7 +47,7 @@ LOBJS=      bam_aux.o bam.o sam.o \
 #            bam_tview.o bam_tview_curses.o bam_tview_html.o bam_lpileup.o \
 #            bam_quickcheck.o bam_addrprg.o bam_markdup.o tmp_file.o \
 #	    bam_ampliconclip.o amplicon_stats.o
-AOBJS=      bam_index.o bam_sort.o bamtk.o sam_view.o
+AOBJS=      bam_index.o bam_sort.o bamtk.o sam_view.o bam2depth.o
 LZ4OBJS  =  $(LZ4DIR)/lz4.o
 
 prefix      = /usr/local
