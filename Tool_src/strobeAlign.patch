@@ -1,0 +1,76 @@
+diff --git a/main.cpp b/main.cpp
+index 97af784..8f2e553 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -211,7 +211,7 @@ int main (int argc, char **argv)
+     mapping_params map_param;
+     map_param.max_secondary = 0;
+     bool is_sam_out = true; // true = align, false=map, default is_sam_out is align
+-    int n_threads = 3;
++    int n_threads = 1;
+     map_param.n = 2;
+     map_param.k = 20;
+     map_param.s = map_param.k - 4;
+@@ -602,19 +602,21 @@ int main (int argc, char **argv)
+         InputBuffer input_buffer = { {}, {}, {}, {}, {}, ks, ks, false, 0, input_chunk_size};
+         OutputBuffer output_buffer = { {}, {}, {}, 0, out};
+ 
+-        std::vector<std::thread> workers;
+-        for (int i = 0; i < n_threads; ++i) {
+-            std::thread consumer(perform_task_SE, std::ref(input_buffer), std::ref(output_buffer),
++        // std::vector<std::thread> workers;
++        // for (int i = 0; i < n_threads; ++i) {
++        //     std::thread consumer(perform_task_SE, std::ref(input_buffer), std::ref(output_buffer),
++        //                          std::ref(log_stats_vec), std::ref(aln_params),
++        //                          std::ref(map_param), std::ref(ref_lengths), std::ref(ref_seqs),
++        //                          std::ref(mers_index), std::ref(flat_vector), std::ref(acc_map) );
++        //     workers.push_back(std::move(consumer));
++        // }
++        // for (size_t i = 0; i < workers.size(); ++i) {
++        //     workers[i].join();
++        // }
++        perform_task_SE(std::ref(input_buffer), std::ref(output_buffer),
+                                  std::ref(log_stats_vec), std::ref(aln_params),
+                                  std::ref(map_param), std::ref(ref_lengths), std::ref(ref_seqs),
+                                  std::ref(mers_index), std::ref(flat_vector), std::ref(acc_map) );
+-            workers.push_back(std::move(consumer));
+-        }
+-
+-        for (size_t i = 0; i < workers.size(); ++i) {
+-            workers[i].join();
+-        }
+-
+         std::cerr << "Done!\n";
+         /////////////////////////////////////
+         /////////////////////////////////////
+@@ -637,18 +639,22 @@ int main (int argc, char **argv)
+         InputBuffer input_buffer = { {}, {}, {}, {}, {}, ks1, ks2, false, 0, input_chunk_size};
+         OutputBuffer output_buffer = { {}, {}, {}, 0, out};
+ 
+-        std::vector<std::thread> workers;
+-        for (int i = 0; i < n_threads; ++i) {
+-            std::thread consumer(perform_task_PE, std::ref(input_buffer), std::ref(output_buffer),
++        // std::vector<std::thread> workers;
++        // for (int i = 0; i < n_threads; ++i) {
++            // std::thread consumer(perform_task_PE, std::ref(input_buffer), std::ref(output_buffer),
++            //                      std::ref(log_stats_vec), std::ref(isize_est_vec), std::ref(aln_params),
++            //                      std::ref(map_param), std::ref(ref_lengths), std::ref(ref_seqs),
++            //                      std::ref(mers_index), std::ref(flat_vector), std::ref(acc_map) );
++            // workers.push_back(std::move(consumer));
++        // }
++        perform_task_PE(std::ref(input_buffer), std::ref(output_buffer),
+                                  std::ref(log_stats_vec), std::ref(isize_est_vec), std::ref(aln_params),
+                                  std::ref(map_param), std::ref(ref_lengths), std::ref(ref_seqs),
+                                  std::ref(mers_index), std::ref(flat_vector), std::ref(acc_map) );
+-            workers.push_back(std::move(consumer));
+-        }
+ 
+-        for (size_t i = 0; i < workers.size(); ++i) {
+-            workers[i].join();
+-        }
++        // for (size_t i = 0; i < workers.size(); ++i) {
++        //     workers[i].join();
++        // }
+ 
+         std::cerr << "Done!\n";
+         /////////////////////////////////////
