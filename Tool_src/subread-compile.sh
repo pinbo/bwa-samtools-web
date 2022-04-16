@@ -4,9 +4,9 @@ cd subread-2.0.1/src
 emmake make -f Makefile.Linux clean
 emmake make -f Makefile.Linux
 cd ../bin
-emcc -O3 subread-align.o -o subread-align.html -s FORCE_FILESYSTEM=1 -s EXTRA_EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1
-emcc -O3 subread-buildindex.o -o subread-buildindex.html -s FORCE_FILESYSTEM=1 -s EXTRA_EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1 -s MAXIMUM_MEMORY=4GB
-emcc -O3 exactSNP.o -o exactSNP.html -s FORCE_FILESYSTEM=1 -s EXTRA_EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1
+emcc -O3 subread-align.o -o subread-align.html -s FORCE_FILESYSTEM=1 -s EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1
+emcc -O3 subread-buildindex.o -o subread-buildindex.html -s FORCE_FILESYSTEM=1 -s EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1 -s MAXIMUM_MEMORY=4GB
+emcc -O3 exactSNP.o -o exactSNP.html -s FORCE_FILESYSTEM=1 -s EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1
 
 ## errror for align: Uncaught RuntimeError: table index is out of bounds
 # fixed by add -s MAXIMUM_MEMORY=4GB
@@ -14,7 +14,7 @@ emcc -O3 exactSNP.o -o exactSNP.html -s FORCE_FILESYSTEM=1 -s EXTRA_EXPORTED_RUN
 ## modifications
 git log
 # git diff old-git new-git folder
-git diff ebd303896564b928572d78f63a1978fb78f6939f 0a57c41f4f904c2b99490a09eea07ca42ef2b03d subread-2.0.1/src/ > subread.patch.txt
+git diff ebd303896564b928572d78f63a1978fb78f6939f 588e40ade8b4e05a4c9c804024dbf26e1b0b686f subread-2.0.1/src/ > subread.patch.txt
 # index-builder.c
 	free_mem = 1.5*1024*1024*1024;
     total_mem = 2.*1024*1024*1024;
