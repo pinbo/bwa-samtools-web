@@ -324,7 +324,8 @@ int read_tmp_block(struct SNP_Calling_Parameters * parameters, FILE * tmp_fp, ch
 				return -1;
 			} 
 			first_base_pos = read_rec.pos - block_no * BASE_BLOCK_LENGTH;
-			parameters->is_paired_end_data = read_rec.flags & 1;
+			// parameters->is_paired_end_data = read_rec.flags & 1;
+            parameters->is_paired_end_data = 0; // JZ: do not count overlaps, treat all reads as single end
 
 			//SUBREADprintf("Loading bases at %u ; len=%d\n", first_base_pos, read_len);
 
