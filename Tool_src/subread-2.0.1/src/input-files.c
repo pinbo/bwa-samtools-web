@@ -41,7 +41,7 @@
 #include "gene-algorithms.h"
 #include "sublog.h"
 
-unsigned int BASE_BLOCK_LENGTH = 15000000;
+unsigned int BASE_BLOCK_LENGTH = 15000; // JZ: original is 15000000;
 
 FILE * f_subr_open(const char * fname, const char * mode)
 {
@@ -1598,7 +1598,7 @@ int get_known_chromosomes(char * in_SAM_file, chromosome_t * known_chromosomes)
 
 void add_cigar_indel_event(HashTable * event_table_ptr, char * chro, unsigned int chro_pos, int indels , char * ins_seq)
 {
-	if(abs(indels)>100) return;
+	if(abs(indels)>1000) return;
 
 	char event_token[100];
 	snprintf(event_token, 99,"%s\t%u", chro, chro_pos);
@@ -1613,9 +1613,9 @@ void add_cigar_indel_event(HashTable * event_table_ptr, char * chro, unsigned in
 		{
 			snprintf(event_token, 99,"%s\t%u\t%d", chro, chro_pos, x1);
 			srInt_64 t64v =  (HashTableGet(event_table_ptr, event_token)-NULL);
-			srInt_64 indel_len = (t64v&0xff) - 0x80;
+			srInt_64 indel_len = (t64v&0x7ff) - 0x400; // JZ for indel size < 1023: old is (t64v&0xff) - 0x80;
 			if(indel_len == indels){
-				indel_event_id = 0xffffff&(t64v >> 8) ;
+				indel_event_id = 0xffffff&(t64v >> 11); // 0xffffff&(t64v >> 8) ;
 				if(app2_ptr[indel_event_id]<65000)
 					app2_ptr[indel_event_id] +=1;
 				return;
@@ -1655,7 +1655,7 @@ void add_cigar_indel_event(HashTable * event_table_ptr, char * chro, unsigned in
 		srInt_64 indel_event_id_long = indel_event_id;
 		app2_ptr[indel_event_id] +=1;
 
-		HashTablePut(event_table_ptr, token_2, NULL + ((0xff & (0x80 + indels)) | ((indel_event_id_long&0xffffff) << 8)));
+		HashTablePut(event_table_ptr, token_2, NULL + ((0x7ff & (0x400 + indels)) | ((indel_event_id_long&0xffffff) << 11)));// for indel < 1023; ((0xff & (0x80 + indels)) | ((indel_event_id_long&0xffffff) << 8)));
 		if(indels<0)
 		{
 			char * ins_seq_2 = malloc(-indels), ** app1_ptrptr = event_table_ptr->appendix1;
@@ -1687,7 +1687,7 @@ void destroy_cigar_event_table(HashTable * event_table)
 
 			if(tabs==3)
 			{
-				unsigned int event_id = (tmpv>>8)&0xffffff;
+				unsigned int event_id = (tmpv>>11)&0xffffff; //(tmpv>>8)&0xffffff;
 				free(seq_tab[event_id]);
 			}
 			free(token);
@@ -2026,7 +2026,7 @@ int break_SAM_file(char * in_SAM_file, int is_BAM_file, char * temp_file_prefix,
 						// the left edge ( last WANTED base ) is chromosome_cursor-1
 						// the indel length is tmpv;
 						// now we add this into the event table.
-						if(event_table && cc=='D')
+						if(event_table) // JZ: treat both D and N as indels; && cc=='D')
 							add_cigar_indel_event(event_table, chro, chromosome_cursor-1, tmpv, NULL);
 						chromosome_cursor += tmpv;
 						tmpv = 0;

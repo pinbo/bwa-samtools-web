@@ -942,9 +942,9 @@ int process_snp_votes(FILE *out_fp, unsigned int offset , unsigned int reference
 			{
 				snprintf(event_token2, 99, "%s\t%u\t%d", chro_name, BASE_BLOCK_LENGTH*block_no + 1 + i, tested_int);
 				long long int tmpv = HashTableGet(parameters -> cigar_event_table, event_token2) - NULL;
-				long long int event_id = 0xffffff&(tmpv >> 8);
+				long long int event_id = 0xffffff&(tmpv >> 11); // JZ: for indel < 1023; original 8
 
-				int indels = (tmpv & 0xff) - 0x80;
+				int indels = (tmpv & 0x7ff) - 0x400; //JZ:for indel < 1023; (tmpv & 0xff) - 0x80;
 
 				if(parameters->output_fp_lock)
 					subread_lock_occupy(parameters->output_fp_lock);
