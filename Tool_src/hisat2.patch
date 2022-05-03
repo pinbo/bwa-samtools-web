@@ -1,0 +1,142 @@
+diff -bur hisat2-2.2.1/hisat2.cpp hisat2-2.2.1-wasm/hisat2.cpp
+--- hisat2-2.2.1/hisat2.cpp	2020-07-24 08:46:16.000000000 -0700
++++ hisat2-2.2.1-wasm/hisat2.cpp	2022-05-01 07:36:03.733695064 -0700
+@@ -3682,14 +3682,16 @@
+         thread_rids.resize(nthreads);
+         thread_rids.fill(0);
+         thread_rids_mindist = (nthreads == 1 || !useTempSpliceSite ? 0 : 1000 * nthreads);        
+-		for(int i = 0; i < nthreads; i++) {
+-			// Thread IDs start at 1
+-			tids[i] = i+1;
+-            threads[i] = new tthread::thread(multiseedSearchWorker_hisat2, (void*)&tids[i]);
+-		}
++		// for(int i = 0; i < nthreads; i++) {
++		// 	// Thread IDs start at 1
++		// 	tids[i] = i+1;
++        //     threads[i] = new tthread::thread(multiseedSearchWorker_hisat2, (void*)&tids[i]);
++		// }
+ 
+-        for (int i = 0; i < nthreads; i++)
+-            threads[i]->join();
++        // for (int i = 0; i < nthreads; i++)
++        //     threads[i]->join();
++        tids[0] = 1;
++        multiseedSearchWorker_hisat2((void*)&tids[0]); // JZ
+ 
+ 	}
+ 	if(!metricsPerRead && (metricsOfb != NULL || metricsStderr)) {
+diff -bur hisat2-2.2.1/Makefile hisat2-2.2.1-wasm/Makefile
+--- hisat2-2.2.1/Makefile	2020-07-24 08:46:16.000000000 -0700
++++ hisat2-2.2.1-wasm/Makefile	2022-05-02 18:18:48.211741921 -0700
+@@ -21,10 +21,10 @@
+ #
+ 
+ INC =
+-GCC_PREFIX = $(shell dirname `which gcc`)
++GCC_PREFIX = $(shell dirname `which emcc`)
+ GCC_SUFFIX =
+-CC = $(GCC_PREFIX)/gcc$(GCC_SUFFIX)
+-CPP = $(GCC_PREFIX)/g++$(GCC_SUFFIX)
++CC = $(GCC_PREFIX)/emcc$(GCC_SUFFIX)
++CPP = $(GCC_PREFIX)/em++$(GCC_SUFFIX)
+ CXX = $(CPP)
+ HEADERS = $(wildcard *.h)
+ BOWTIE_MM = 1
+@@ -55,7 +55,7 @@
+ 	MACOS = 1
+ endif
+ 
+-EXTRA_FLAGS += -DPOPCNT_CAPABILITY -std=c++11
++EXTRA_FLAGS +=  -std=c++11 #-DPOPCNT_CAPABILITY
+ INC += -I. -I third_party 
+ 
+ MM_DEF = 
+@@ -100,6 +100,7 @@
+ endif
+ 
+ LIBS = $(PTHREAD_LIB)
++WASM_FLAGS = -s EXPORTED_RUNTIME_METHODS=["callMain"] -s ALLOW_MEMORY_GROWTH=1 -s ASSERTIONS=1 -s NO_DISABLE_EXCEPTION_CATCHING
+ 
+ SHARED_CPPS = ccnt_lut.cpp ref_read.cpp alphabet.cpp shmem.cpp \
+ 	edit.cpp gfm.cpp \
+@@ -165,18 +166,18 @@
+ endif
+ BITS_FLAG =
+ 
+-ifeq (32,$(BITS))
+-	BITS_FLAG = -m32
+-endif
+-
+-ifeq (64,$(BITS))
+-	BITS_FLAG = -m64
+-endif
+-SSE_FLAG=-msse2
++# ifeq (32,$(BITS))
++# 	BITS_FLAG = -m32
++# endif
++
++# ifeq (64,$(BITS))
++# 	BITS_FLAG = -m64
++# endif
++SSE_FLAG=-msse2 -msimd128
+ 
+ DEBUG_FLAGS    = -O0 -g3 $(BITS_FLAG) $(SSE_FLAG)
+ DEBUG_DEFS     = -DCOMPILER_OPTIONS="\"$(DEBUG_FLAGS) $(EXTRA_FLAGS)\""
+-RELEASE_FLAGS  = -O3 $(BITS_FLAG) $(SSE_FLAG) -funroll-loops -g3
++RELEASE_FLAGS  = -O3 $(BITS_FLAG) $(SSE_FLAG) -funroll-loops #-g3
+ RELEASE_DEFS   = -DCOMPILER_OPTIONS="\"$(RELEASE_FLAGS) $(EXTRA_FLAGS)\""
+ NOASSERT_FLAGS = -DNDEBUG
+ FILE_FLAGS     = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
+@@ -190,13 +191,8 @@
+ endif
+ 
+ 
+-HISAT2_BIN_LIST = hisat2-build-s \
+-	hisat2-build-l \
+-	hisat2-align-s \
+-	hisat2-align-l \
+-	hisat2-inspect-s \
+-	hisat2-inspect-l \
+-	hisat2-repeat
++HISAT2_BIN_LIST = hisat2-build-s hisat2-align-s 
++
+ HISAT2_BIN_LIST_AUX = hisat2-build-s-debug \
+ 	hisat2-build-l-debug \
+ 	hisat2-align-s-debug \
+@@ -346,9 +342,9 @@
+ 	$(CXX) $(RELEASE_FLAGS) $(RELEASE_DEFS) $(EXTRA_FLAGS) \
+ 	$(DEFS) -DBOWTIE2 $(NOASSERT_FLAGS) -Wall -DMASSIVE_DATA_RLCSA \
+ 	$(INC) \
+-	-o $@ $< \
++	-o $@.js $< \
+ 	$(SHARED_CPPS) $(HISAT2_BUILD_CPPS_MAIN) \
+-	$(LIBS) $(BUILD_LIBS)
++	$(LIBS) $(BUILD_LIBS) $(WASM_FLAGS)
+ 
+ hisat2-build-l: hisat2_build.cpp $(SHARED_CPPS) $(HEADERS)
+ 	$(CXX) $(RELEASE_FLAGS) $(RELEASE_DEFS) $(EXTRA_FLAGS) \
+@@ -382,9 +378,9 @@
+ 	$(CXX) $(RELEASE_FLAGS) $(RELEASE_DEFS) $(EXTRA_FLAGS) \
+ 	$(DEFS) $(SRA_DEF) -DBOWTIE2 $(NOASSERT_FLAGS) -Wall \
+ 	$(INC) $(SEARCH_INC) \
+-	-o $@ $< \
++	-o $@.js $< \
+ 	$(SHARED_CPPS) $(HISAT2_CPPS_MAIN) \
+-	$(LIBS) $(SRA_LIB) $(SEARCH_LIBS)
++	$(LIBS) $(SRA_LIB) $(SEARCH_LIBS) $(WASM_FLAGS)
+ 
+ hisat2-align-l: hisat2.cpp $(SEARCH_CPPS) $(SHARED_CPPS) $(HEADERS) $(SEARCH_FRAGMENTS)
+ 	$(CXX) $(RELEASE_FLAGS) $(RELEASE_DEFS) $(EXTRA_FLAGS) \
+@@ -459,10 +455,10 @@
+ ht2lib: libhisat2lib-debug.a libhisat2lib.a libhisat2lib-debug.so libhisat2lib.so
+ 
+ libhisat2lib-debug.a: $(HT2LIB_DEBUG_OBJS)
+-	ar rc $@ $(HT2LIB_DEBUG_OBJS) 
++	emar rc $@ $(HT2LIB_DEBUG_OBJS) 
+ 
+ libhisat2lib.a: $(HT2LIB_RELEASE_OBJS)
+-	ar rc $@ $(HT2LIB_RELEASE_OBJS) 
++	emar rc $@ $(HT2LIB_RELEASE_OBJS) 
+ 
+ libhisat2lib-debug.so: $(HT2LIB_SHARED_DEBUG_OBJS)
+ 	$(CXX) $(DEBUG_FLAGS) $(DEBUG_DEFS) $(EXTRA_FLAGS) $(DEFS) $(SRA_DEF) -DBOWTIE2 -Wall $(INC) $(SEARCH_INC) \
