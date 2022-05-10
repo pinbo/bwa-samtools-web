@@ -13,16 +13,17 @@ index d6b4c96..1718b1c 100644
  
  #define PI_LONG 3.1415926535897932384626434L
 diff --git a/Tool_src/subread-2.0.1/src/Makefile.Linux b/Tool_src/subread-2.0.1/src/Makefile.Linux
-index 56a15f7..004ee12 100644
+index 56a15f7..461eb2e 100644
 --- a/Tool_src/subread-2.0.1/src/Makefile.Linux
 +++ b/Tool_src/subread-2.0.1/src/Makefile.Linux
-@@ -1,15 +1,15 @@
+@@ -1,15 +1,16 @@
  #MACOS = -D MACOS 
  
  
 -CC_EXEC = gcc
 +CC_EXEC = emcc
  OPT_LEVEL = 3
++AR = emar
  
  include makefile.version
  -include ~/.R/DBPZ_debug_makefile
@@ -36,13 +37,13 @@ index 56a15f7..004ee12 100644
  
  
  ALL_LIBS= core core-junction core-indel sambam-file sublog gene-algorithms hashtable input-files sorted-hashtable gene-value-index exon-algorithms HelperFunctions interval_merge long-hashtable core-bigtable seek-zlib input-blc
-@@ -17,11 +17,12 @@ ALL_OBJECTS=$(addsuffix .o, ${ALL_LIBS})
+@@ -17,11 +18,12 @@ ALL_OBJECTS=$(addsuffix .o, ${ALL_LIBS})
  ALL_H=$(addsuffix .h, ${ALL_LIBS})
  ALL_C=$(addsuffix .c, ${ALL_LIBS})
  
 -all: genRandomReads detectionCall sublong repair txUnique featureCounts removeDup exactSNP subread-buildindex subindel  subread-align subjunc qualityScores subread-fullscan propmapped flattenGTF # samMappedBases mergeVCF  testZlib
 +# all: genRandomReads detectionCall sublong repair txUnique featureCounts removeDup exactSNP subread-buildindex subindel  subread-align subjunc qualityScores subread-fullscan propmapped flattenGTF # samMappedBases mergeVCF  testZlib
-+all: subread-buildindex.o subread-align.o exactSNP.o
++all: subread-buildindex.o subread-align.o exactSNP.o libexactSNP.a
  	mkdir -p ../bin/utilities
 -	mv longread-one/LRM longread-one/sublong
 -	mv longread-one/sublong subread-align subjunc featureCounts  subindel exactSNP subread-buildindex ../bin/
@@ -53,7 +54,7 @@ index 56a15f7..004ee12 100644
  	@echo
  	@echo "###########################################################"
  	@echo "#                                                         #"
-@@ -32,61 +33,61 @@ all: genRandomReads detectionCall sublong repair txUnique featureCounts removeDu
+@@ -32,61 +34,65 @@ all: genRandomReads detectionCall sublong repair txUnique featureCounts removeDu
  	@echo "###########################################################"
  	@echo
  
@@ -108,53 +109,57 @@ index 56a15f7..004ee12 100644
  
 -subread-buildindex: index-builder.c subread.h ${ALL_OBJECTS}
 -	${CC}  -o subread-buildindex  index-builder.c ${ALL_OBJECTS} ${LDFLAGS}
-+subread-buildindex.o: index-builder.c subread.h ${ALL_OBJECTS}
-+	${CC} -r -o subread-buildindex.o  index-builder.c ${ALL_OBJECTS} ${LDFLAGS}
++libexactSNP.a: SNPCalling.c SNPCalling.h  ${ALL_OBJECTS}
++	${CC} -c -o SNPCalling.o SNPCalling.c ${LDFLAGS} -D WASM_LIB
++	${AR} csr libexactSNP.a SNPCalling.o  ${ALL_OBJECTS}
  
 -removeDup: removeDupReads.c removeDupReads.h subread.h ${ALL_OBJECTS}
 -	${CC} -o  removeDup removeDupReads.c  ${ALL_OBJECTS} ${LDFLAGS}
-+# removeDup: removeDupReads.c removeDupReads.h subread.h ${ALL_OBJECTS}
-+# 	${CC} -o  removeDup removeDupReads.c  ${ALL_OBJECTS} ${LDFLAGS}
++subread-buildindex.o: index-builder.c subread.h ${ALL_OBJECTS}
++	${CC} -r -o subread-buildindex.o  index-builder.c ${ALL_OBJECTS} ${LDFLAGS}
  
 -subindel: SUBindel.c core.h subread.h  ${ALL_OBJECTS}
 -	${CC} -o subindel SUBindel.c ${ALL_OBJECTS} ${LDFLAGS}
-+# subindel: SUBindel.c core.h subread.h  ${ALL_OBJECTS}
-+# 	${CC} -o subindel SUBindel.c ${ALL_OBJECTS} ${LDFLAGS}
++# removeDup: removeDupReads.c removeDupReads.h subread.h ${ALL_OBJECTS}
++# 	${CC} -o  removeDup removeDupReads.c  ${ALL_OBJECTS} ${LDFLAGS}
  
 -featureCounts: readSummary.c subread.h  ${ALL_OBJECTS}
 -	${CC} -o featureCounts readSummary.c ${ALL_OBJECTS} ${LDFLAGS}
-+# featureCounts: readSummary.c subread.h  ${ALL_OBJECTS}
-+# 	${CC} -o featureCounts readSummary.c ${ALL_OBJECTS} ${LDFLAGS}
++# subindel: SUBindel.c core.h subread.h  ${ALL_OBJECTS}
++# 	${CC} -o subindel SUBindel.c ${ALL_OBJECTS} ${LDFLAGS}
  
 -subread-align: core-interface-aligner.c  ${ALL_OBJECTS}
 -	${CC} -o subread-align core-interface-aligner.c  ${ALL_OBJECTS} ${LDFLAGS} 
-+subread-align.o: core-interface-aligner.c  ${ALL_OBJECTS}
-+	${CC} -r -o subread-align.o core-interface-aligner.c  ${ALL_OBJECTS} ${LDFLAGS} 
++# featureCounts: readSummary.c subread.h  ${ALL_OBJECTS}
++# 	${CC} -o featureCounts readSummary.c ${ALL_OBJECTS} ${LDFLAGS}
  
 -subjunc: core-interface-subjunc.c  ${ALL_OBJECTS}
 -	${CC} -o subjunc core-interface-subjunc.c  ${ALL_OBJECTS} ${LDFLAGS} 
-+# subjunc: core-interface-subjunc.c  ${ALL_OBJECTS}
-+# 	${CC} -o subjunc core-interface-subjunc.c  ${ALL_OBJECTS} ${LDFLAGS} 
++subread-align.o: core-interface-aligner.c  ${ALL_OBJECTS}
++	${CC} -r -o subread-align.o core-interface-aligner.c  ${ALL_OBJECTS} ${LDFLAGS} 
  
 -subtools: subtools.c ${ALL_OBJECTS}
 -	${CC} -o subtools subtools.c ${ALL_OBJECTS} ${LDFLAGS} 
-+# subtools: subtools.c ${ALL_OBJECTS}
-+# 	${CC} -o subtools subtools.c ${ALL_OBJECTS} ${LDFLAGS} 
++# subjunc: core-interface-subjunc.c  ${ALL_OBJECTS}
++# 	${CC} -o subjunc core-interface-subjunc.c  ${ALL_OBJECTS} ${LDFLAGS} 
  
 -qualityScores: qualityScores.c ${ALL_OBJECTS}
 -	${CC} -o qualityScores qualityScores.c  ${ALL_OBJECTS}  ${LDFLAGS}
-+# qualityScores: qualityScores.c ${ALL_OBJECTS}
-+# 	${CC} -o qualityScores qualityScores.c  ${ALL_OBJECTS}  ${LDFLAGS}
++# subtools: subtools.c ${ALL_OBJECTS}
++# 	${CC} -o subtools subtools.c ${ALL_OBJECTS} ${LDFLAGS} 
  
 -subread-fullscan: fullscan.c  ${ALL_OBJECTS}
 -	${CC} -o subread-fullscan fullscan.c  ${ALL_OBJECTS}  ${LDFLAGS}
++# qualityScores: qualityScores.c ${ALL_OBJECTS}
++# 	${CC} -o qualityScores qualityScores.c  ${ALL_OBJECTS}  ${LDFLAGS}
++
 +# subread-fullscan: fullscan.c  ${ALL_OBJECTS}
 +# 	${CC} -o subread-fullscan fullscan.c  ${ALL_OBJECTS}  ${LDFLAGS}
  
  clean:
  	rm -f core featureCounts exactSNP removeDup subread-buildindex ${ALL_OBJECTS}
 diff --git a/Tool_src/subread-2.0.1/src/SNPCalling.c b/Tool_src/subread-2.0.1/src/SNPCalling.c
-index 193f918..8ae057f 100644
+index 193f918..44bac6d 100644
 --- a/Tool_src/subread-2.0.1/src/SNPCalling.c
 +++ b/Tool_src/subread-2.0.1/src/SNPCalling.c
 @@ -324,7 +324,8 @@ int read_tmp_block(struct SNP_Calling_Parameters * parameters, FILE * tmp_fp, ch
@@ -167,6 +172,18 @@ index 193f918..8ae057f 100644
  
  			//SUBREADprintf("Loading bases at %u ; len=%d\n", first_base_pos, read_len);
  
+@@ -941,9 +942,9 @@ int process_snp_votes(FILE *out_fp, unsigned int offset , unsigned int reference
+ 			{
+ 				snprintf(event_token2, 99, "%s\t%u\t%d", chro_name, BASE_BLOCK_LENGTH*block_no + 1 + i, tested_int);
+ 				long long int tmpv = HashTableGet(parameters -> cigar_event_table, event_token2) - NULL;
+-				long long int event_id = 0xffffff&(tmpv >> 8);
++				long long int event_id = 0xffffff&(tmpv >> 11); // JZ: for indel < 1023; original 8
+ 
+-				int indels = (tmpv & 0xff) - 0x80;
++				int indels = (tmpv & 0x7ff) - 0x400; //JZ:for indel < 1023; (tmpv & 0xff) - 0x80;
+ 
+ 				if(parameters->output_fp_lock)
+ 					subread_lock_occupy(parameters->output_fp_lock);
 @@ -1225,19 +1226,21 @@ int parse_read_lists_maybe_threads(char * in_FASTA_file, char * out_BED_file, ch
  		parameters -> output_fp_lock = malloc(sizeof(*parameters -> output_fp_lock));
  		pthread_spin_init(parameters -> output_fp_lock ,  PTHREAD_PROCESS_PRIVATE);
@@ -200,6 +217,19 @@ index 193f918..8ae057f 100644
  		free((void *)parameters -> output_fp_lock);
  	}
  	//fprintf(out_fp, "## Fisher_Test_Size=%u\n",fisher_test_size);
+@@ -1579,7 +1582,11 @@ static struct option snp_long_options[]={
+ 	{0,0,0,0}
+ };
+ 
+-#ifdef MAKE_STANDALONE
++#ifdef WASM_LIB
++int main_snpcall(int argc,char ** argv)
++{
++	snp_progress_report_callback = NULL;
++#elif defined(MAKE_STANDALONE)
+ int main(int argc,char ** argv)
+ {
+ 	snp_progress_report_callback = NULL;
 diff --git a/Tool_src/subread-2.0.1/src/core-indel.c b/Tool_src/subread-2.0.1/src/core-indel.c
 index 874032a..9a89509 100644
 --- a/Tool_src/subread-2.0.1/src/core-indel.c
@@ -612,9 +642,18 @@ index cfdd706..a224da6 100644
  	cache_input -> read_no_in_chunk = 0;
  	cache_input -> chunk_no ++;
 diff --git a/Tool_src/subread-2.0.1/src/input-files.c b/Tool_src/subread-2.0.1/src/input-files.c
-index cde6f98..0553c33 100644
+index cde6f98..5c5b458 100644
 --- a/Tool_src/subread-2.0.1/src/input-files.c
 +++ b/Tool_src/subread-2.0.1/src/input-files.c
+@@ -41,7 +41,7 @@
+ #include "gene-algorithms.h"
+ #include "sublog.h"
+ 
+-unsigned int BASE_BLOCK_LENGTH = 15000000;
++unsigned int BASE_BLOCK_LENGTH = 15000; // JZ: original is 15000000;
+ 
+ FILE * f_subr_open(const char * fname, const char * mode)
+ {
 @@ -51,7 +51,8 @@ FILE * f_subr_open(const char * fname, const char * mode)
  #if defined(__LP64__) || defined(_LP64) || defined(MACOS) 
  		return fopen(fname, mode);
@@ -635,6 +674,45 @@ index cde6f98..0553c33 100644
  	return new_ret;
  }
  
+@@ -1596,7 +1598,7 @@ int get_known_chromosomes(char * in_SAM_file, chromosome_t * known_chromosomes)
+ 
+ void add_cigar_indel_event(HashTable * event_table_ptr, char * chro, unsigned int chro_pos, int indels , char * ins_seq)
+ {
+-	if(abs(indels)>100) return;
++	if(abs(indels)>1000) return;
+ 
+ 	char event_token[100];
+ 	snprintf(event_token, 99,"%s\t%u", chro, chro_pos);
+@@ -1611,9 +1613,9 @@ void add_cigar_indel_event(HashTable * event_table_ptr, char * chro, unsigned in
+ 		{
+ 			snprintf(event_token, 99,"%s\t%u\t%d", chro, chro_pos, x1);
+ 			srInt_64 t64v =  (HashTableGet(event_table_ptr, event_token)-NULL);
+-			srInt_64 indel_len = (t64v&0xff) - 0x80;
++			srInt_64 indel_len = (t64v&0x7ff) - 0x400; // JZ for indel size < 1023: old is (t64v&0xff) - 0x80;
+ 			if(indel_len == indels){
+-				indel_event_id = 0xffffff&(t64v >> 8) ;
++				indel_event_id = 0xffffff&(t64v >> 11); // 0xffffff&(t64v >> 8) ;
+ 				if(app2_ptr[indel_event_id]<65000)
+ 					app2_ptr[indel_event_id] +=1;
+ 				return;
+@@ -1653,7 +1655,7 @@ void add_cigar_indel_event(HashTable * event_table_ptr, char * chro, unsigned in
+ 		srInt_64 indel_event_id_long = indel_event_id;
+ 		app2_ptr[indel_event_id] +=1;
+ 
+-		HashTablePut(event_table_ptr, token_2, NULL + ((0xff & (0x80 + indels)) | ((indel_event_id_long&0xffffff) << 8)));
++		HashTablePut(event_table_ptr, token_2, NULL + ((0x7ff & (0x400 + indels)) | ((indel_event_id_long&0xffffff) << 11)));// for indel < 1023; ((0xff & (0x80 + indels)) | ((indel_event_id_long&0xffffff) << 8)));
+ 		if(indels<0)
+ 		{
+ 			char * ins_seq_2 = malloc(-indels), ** app1_ptrptr = event_table_ptr->appendix1;
+@@ -1685,7 +1687,7 @@ void destroy_cigar_event_table(HashTable * event_table)
+ 
+ 			if(tabs==3)
+ 			{
+-				unsigned int event_id = (tmpv>>8)&0xffffff;
++				unsigned int event_id = (tmpv>>11)&0xffffff; //(tmpv>>8)&0xffffff;
+ 				free(seq_tab[event_id]);
+ 			}
+ 			free(token);
 @@ -1797,12 +1799,13 @@ int break_SAM_file(char * in_SAM_file, int is_BAM_file, char * temp_file_prefix,
  	HashTableSetKeyComparisonFunction(fp_table, my_strcmp);
  	HashTableSetHashFunction(fp_table,HashTableStringHashFunction);
@@ -654,6 +732,15 @@ index cde6f98..0553c33 100644
  
  	max_open_file = max(100, max_open_file);
  	max_open_file = min(3000, max_open_file);
+@@ -2023,7 +2026,7 @@ int break_SAM_file(char * in_SAM_file, int is_BAM_file, char * temp_file_prefix,
+ 						// the left edge ( last WANTED base ) is chromosome_cursor-1
+ 						// the indel length is tmpv;
+ 						// now we add this into the event table.
+-						if(event_table && cc=='D')
++						if(event_table) // JZ: treat both D and N as indels; && cc=='D')
+ 							add_cigar_indel_event(event_table, chro, chromosome_cursor-1, tmpv, NULL);
+ 						chromosome_cursor += tmpv;
+ 						tmpv = 0;
 @@ -4615,19 +4618,20 @@ void  SAM_pairer_finish_margin_table( SAM_pairer_context_t * pairer){
  // not only run, but also finalise.
  // It returns 0 if no error.
