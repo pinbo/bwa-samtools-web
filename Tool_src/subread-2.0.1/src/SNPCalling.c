@@ -1582,7 +1582,11 @@ static struct option snp_long_options[]={
 	{0,0,0,0}
 };
 
-#ifdef MAKE_STANDALONE
+#ifdef WASM_LIB
+int main_snpcall(int argc,char ** argv)
+{
+	snp_progress_report_callback = NULL;
+#elif defined(MAKE_STANDALONE)
 int main(int argc,char ** argv)
 {
 	snp_progress_report_callback = NULL;
