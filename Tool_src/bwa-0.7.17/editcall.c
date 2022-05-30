@@ -558,6 +558,7 @@ int main_editcall (int argc, char **argv)
   if (input) {
     for (ks.l = 0; kgetline(&ks, (kgets_func *)fgets, input) == 0; ks.l = 0){
       // printf("new line is %s\n",  ks.s);
+      if (ks.s[0] == "@") continue; // skip headers
       parse_line(&ks, h, debug, fh, dh, no_snp_call);
     }
     fclose(input);
