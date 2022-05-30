@@ -5,7 +5,7 @@ WRAP_MALLOC=-DUSE_MALLOC_WRAPPERS
 AR=			emar
 DFLAGS=		-DHAVE_PTHREAD $(WRAP_MALLOC)
 LOBJS=		utils.o kthread.o kstring.o ksw.o bwt.o bntseq.o bwa.o bwamem.o bwamem_pair.o bwamem_extra.o malloc_wrap.o \
-			QSufSort.o bwt_gen.o rope.o rle.o is.o bwtindex.o
+			QSufSort.o bwt_gen.o rope.o rle.o is.o bwtindex.o editcall.o
 AOBJS=		bwashm.o  kopen.o fastmap.o
 PROG=		bwa2.o
 INCLUDES=	
@@ -24,7 +24,8 @@ endif
 all:$(PROG)
 
 bwa2.o:libbwa.a $(AOBJS) main.o
-		$(CC) -r $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa -Lnewlibs -lexactSNP -Lnewlibs -leditcall $(LIBS)
+		$(CC) -r $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa $(LIBS)
+		# $(CC) -r $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa -Lnewlibs -lexactSNP -Lnewlibs -leditcall $(LIBS)
 
 bwamem-lite:libbwa.a example.o
 		$(CC) $(CFLAGS) $(DFLAGS) example.o -o $@ -L. -lbwa $(LIBS)
@@ -83,3 +84,4 @@ pemerge.o: ksw.h kseq.h malloc_wrap.h kstring.h bwa.h bntseq.h bwt.h utils.h
 rle.o: rle.h
 rope.o: rle.h rope.h
 utils.o: utils.h ksort.h malloc_wrap.h kseq.h
+editcall.o: kstring.h khash.h kvec.h kseq.h

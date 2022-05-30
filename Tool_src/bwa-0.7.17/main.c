@@ -28,7 +28,7 @@ int main_mem(int argc, char *argv[]);
 // int main_maxk(int argc, char *argv[]);
 
 // call variations
-int main_snpcall(int argc,char ** argv);
+// int main_snpcall(int argc,char ** argv);
 int main_editcall(int argc, char** args, char** env);
 
 static int usage()
@@ -41,7 +41,7 @@ static int usage()
 	fprintf(stderr, "Command: index         index sequences in the FASTA format\n");
 	fprintf(stderr, "         mem           BWA-MEM algorithm\n");
     fprintf(stderr, "         call          call SNPs with exactSNP\n");
-    fprintf(stderr, "         editcall      call indels and inversions with editcall\n");
+    // fprintf(stderr, "         editcall      call indels and inversions with editcall\n");
 	// fprintf(stderr, "         fastmap       identify super-maximal exact matches\n");
 	// fprintf(stderr, "         pemerge       merge overlapping paired ends (EXPERIMENTAL)\n");
 	// fprintf(stderr, "         aln           gapped/ungapped alignment\n");
@@ -91,7 +91,7 @@ int main(int argc, char *argv[], char** env)
 	// else if (strcmp(argv[1], "bwasw") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
 	// else if (strcmp(argv[1], "fastmap") == 0) ret = main_fastmap(argc-1, argv+1);
 	else if (strcmp(argv[1], "mem") == 0) ret = main_mem(argc-1, argv+1);
-    else if (strcmp(argv[1], "call") == 0) ret = main_snpcall(argc-1, argv+1);
+    // else if (strcmp(argv[1], "call") == 0) ret = main_snpcall(argc-1, argv+1);
     else if (strcmp(argv[1], "editcall") == 0) ret = main_editcall(argc-1, argv+1, env);
 	// else if (strcmp(argv[1], "shm") == 0) ret = main_shm(argc-1, argv+1);
 	// else if (strcmp(argv[1], "pemerge") == 0) ret = main_pemerge(argc-1, argv+1);
