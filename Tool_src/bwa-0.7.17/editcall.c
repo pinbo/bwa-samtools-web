@@ -10,7 +10,7 @@
 
 
 // to compile a standalone app
-// gcc -Wall -g -O2 editcall.c ../klib/kstring.c  -o editcall -lz -DMAKE_STANDALONE
+// gcc -Wall -g -O2 editcall.c kstring.c  -o editcall -lz -DMAKE_STANDALONE
 // for included in bwa
 // 
 typedef char *kgets_func(char *, int, void *);
@@ -475,16 +475,20 @@ int main_editcall (int argc, char **argv)
   int c;
   char *fasta_file = NULL;
   char *outfile = NULL;
+  int no_header = 0;
 
   opterr = 0;
 
-  while ((c = getopt (argc, argv, "dnc:f:o:")) != -1)
+  while ((c = getopt (argc, argv, "bdnc:f:o:")) != -1)
     switch (c)
       {
       case 'd':
         debug = 1;
         break;
-    case 'n':
+      case 'b':
+        no_header = 1;
+        break;
+      case 'n':
         no_snp_call = 1;
         break;
       case 'c':
@@ -526,10 +530,11 @@ int main_editcall (int argc, char **argv)
         "or:    samtools view aln.bam | editcall [options] -f ref.fasta\n"
         "Options:\n"
         "  -n                    no call for snps and small indels  \n"
+        "  -b no header          do not print header \n"
         "  -d debug              print extra information for debugging \n"
         "  -c coverage [int]     minimum coverage for a variant (defualt 1)\n"
         "  -f fasta file name    your reference sequences\n"
-        "  -o output file name   output file name (default:\n");
+        "  -o output file name   output file name (default: stdout)\n");
         return 1;
     }
     fh = read_fasta(fasta_file);
@@ -558,7 +563,7 @@ int main_editcall (int argc, char **argv)
   if (input) {
     for (ks.l = 0; kgetline(&ks, (kgets_func *)fgets, input) == 0; ks.l = 0){
       // printf("new line is %s\n",  ks.s);
-      if (ks.s[0] == "@") continue; // skip headers
+      if (ks.s[0] == '@') continue; // skip headers
       parse_line(&ks, h, debug, fh, dh, no_snp_call);
     }
     fclose(input);
@@ -566,7 +571,8 @@ int main_editcall (int argc, char **argv)
 	free(ks.s);
   //print output
   int n;
-  fprintf(output, "chrom\tref_start\tref_end\tref\talt\tsize\ttype\tmutCov\ttotalCov\tmutPercent\n");
+  if (! no_header)
+    fprintf(output, "chrom\tref_start\tref_end\tref\talt\tsize\ttype\tmutCov\ttotalCov\tmutPercent\n");
   for (k = kh_begin(h); k != kh_end(h); ++k) { // traverse
     	if (!kh_exist(h,k)) continue;
     	char *kk = (char *) kh_key(h, k);

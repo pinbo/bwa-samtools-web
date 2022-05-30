@@ -25,7 +25,6 @@ all:$(PROG)
 
 bwa2.o:libbwa.a $(AOBJS) main.o
 		$(CC) -r $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa $(LIBS)
-		# $(CC) -r $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa -Lnewlibs -lexactSNP -Lnewlibs -leditcall $(LIBS)
 
 bwamem-lite:libbwa.a example.o
 		$(CC) $(CFLAGS) $(DFLAGS) example.o -o $@ -L. -lbwa $(LIBS)
