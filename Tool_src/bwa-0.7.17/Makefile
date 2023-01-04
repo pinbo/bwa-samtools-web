@@ -1,6 +1,6 @@
 CC=			emcc
 #CC=			clang --analyze
-CFLAGS=		-g -Wall -Wno-unused-function -O2 -msse -msse2 -msimd128
+CFLAGS=		-g -Wall -Wno-unused-function -O2 -msse -msse2 -msimd128 -s USE_ZLIB=1
 WRAP_MALLOC=-DUSE_MALLOC_WRAPPERS
 AR=			emar
 DFLAGS=		-DHAVE_PTHREAD $(WRAP_MALLOC)
