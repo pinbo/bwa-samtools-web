@@ -320,6 +320,68 @@ int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, kh
     free(ff);
     return 0;
   }
+  // check whether both reads are mapped in the same chromosome in case some reads are multi-mapped
+    // big deletions
+  char *sa_info = NULL;
+  char *xa_info = NULL;
+  for (i = 11; i < n; ++i){
+    if (strstr(ff[i], "SA:Z") != NULL) {
+      sa_info = ff[i];
+    } else if (strstr(ff[i], "XA:Z") != NULL) {
+        xa_info = ff[i];
+        break;
+      }
+  }
+  free(ff);
+  // SA information
+  char *sa_chrom = NULL;
+  char *sa_strand = NULL;
+  char *sa_cigar = NULL;
+  int sa_pos = 0, sa_mapq = 0;
+  // big deletions or inversions
+  if (sa_info != NULL && strstr(cigar, "H") == NULL){
+    char *token = strtok(sa_info, ":"); // first string
+    token = strtok(NULL, ":"); // 2nd string
+    token = strtok(NULL, ":"); // 3rd string
+    char **ff2 = splitsub(token, ",", &n);
+    sa_chrom  = ff2[0];
+    sa_pos  = atoi(ff2[1]) - 1; // 0-based this is close to the border on the left, may need to adjust
+    sa_strand = ff2[2];
+    sa_cigar  = ff2[3];
+    sa_mapq = atoi(ff2[4]); // mapping quality, need to use `bwa mem -q`
+    free(ff2);
+  }
+  char *mate_chrom = ff[6]; // = means on the same chromosome
+  int mapq = atoi(ff[4]); // mapping quality
+  char *target_chrom = NULL; // the correct chromosome based on mate or SA
+  if (mapq == 0 && strcmp(mate_chrom, "=") != 0 && strstr(ks->s, "MQ:i") != NULL)
+    target_chrom = mate_chrom;
+  else if (mapq == 0 && sa_mapq > 0 && strcmp(chrom, sa_chrom) != 0)
+    target_chrom = sa_chrom;
+  if (target_chrom != NULL && xa_info != NULL){ // target chromosome needs to change and XA:Z tag is present
+    int nXA; // number of multi mapped regions in XA tag
+    char **ffxa = splitsub(xa_info, ";", &nXA);
+    char *real_hit = NULL;
+    for (i = 0; i < nXA; ++i){
+      if (strstr(ffxa[i], target_chrom) != NULL) {
+        real_hit = ffxa[i];
+        break;
+      }
+    }
+    // replace mapping information with real hit
+    // XA:Z:gene_5b,+394,42S74M,0;
+    if (real_hit != NULL) {
+      char **ff3 = splitsub(real_hit, ",", &nXA);
+      chrom = target_chrom;
+      int tmppos  = atoi(ff3[1]); // +300 or -300
+      strand = tmppos < 0 ? "-" : "+";
+      pos = abs(tmppos) - 1; // 0 based
+      // cigar  = ff3[2]; // no need to change, always the same as original cigar except H and S difference
+      free(ff3);
+    }
+    // free strings
+    free(ffxa);
+  }
   // cigar_info r = split_cigar(cigar);
   // SNPs and small indels
   khint_t k;
@@ -336,31 +398,8 @@ int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, kh
     parse_snp(cigar, ref_seq, read_seq, h, chrom, pos, debug);
   }
 
-  // big deletions
-  char *sa_info = NULL;
-  for (i = 11; i < n; ++i){
-    if (strstr(ff[i], "SA:Z") != NULL) {
-      sa_info = ff[i];
-      break;
-    }
-  }
-  free(ff);
-
   // big deletions or inversions
   if (sa_info != NULL && strstr(cigar, "H") == NULL){
-    // char *sa_info = ks->s + ff[i];
-    char *token = strtok(sa_info, ":"); // first string
-    token = strtok(NULL, ":"); // 2nd string
-    token = strtok(NULL, ":"); // 3rd string
-    // printf("token is %s\n", token);
-    kstring_t s = { 0, 0, NULL };
-    kputs(token, &s); // string to Kstring
-    char **ff2 = splitsub(s.s, ",", &n);
-    char *sa_chrom  = ff2[0];
-    int sa_pos  = atoi(ff2[1]) - 1; // 0-based this is close to the border on the left, may need to adjust
-    char *sa_strand = ff2[2];
-    char *sa_cigar  = ff2[3];
-    free(ff2);
     int all_pos1[4];
     int all_pos2 [4];
     if (strcmp(chrom,sa_chrom)==0 && strcmp(strand, sa_strand) ==0) { // potential big deletion, could be insertion too, but update later
@@ -376,7 +415,7 @@ int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, kh
         fprintf(stderr, "all_pos1: [%d, %d, %d, %d]\n", all_pos1[0], all_pos1[1], all_pos1[2], all_pos1[3]);
         fprintf(stderr, "all_pos2: [%d, %d, %d, %d]\n", all_pos2[0], all_pos2[1], all_pos2[2], all_pos2[3]);
       }
-      if (all_pos1[0] > all_pos2[1] || all_pos1[3] >= all_pos2[2] || all_pos1[1] >= all_pos2[1]) {free(s.s); return 0;}
+      if (all_pos1[0] > all_pos2[1] || all_pos1[3] >= all_pos2[2] || all_pos1[1] >= all_pos2[1]) {return 0;}
       int read_pos1 = all_pos1[1];
       int ref_pos1  = all_pos1[3];
       int read_pos2 = all_pos2[0];
@@ -385,7 +424,6 @@ int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, kh
       int del_end_pos = ref_pos2 + shift;
       if (ref_pos1 < del_end_pos) {
         if (read_pos2+shift+1 > read_len) {
-            free(s.s);
             return 0;
         }
         char alt_seq[read_pos2+shift+1-read_pos1];
@@ -454,8 +492,6 @@ int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, kh
         }
       }
     }
-    // free strings
-    free(s.s);
   }
 
   return 0;
