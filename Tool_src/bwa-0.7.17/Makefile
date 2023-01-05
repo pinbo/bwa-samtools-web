@@ -7,10 +7,11 @@ DFLAGS=		-DHAVE_PTHREAD $(WRAP_MALLOC)
 LOBJS=		utils.o kthread.o kstring.o ksw.o bwt.o bntseq.o bwa.o bwamem.o bwamem_pair.o bwamem_extra.o malloc_wrap.o \
 			QSufSort.o bwt_gen.o rope.o rle.o is.o bwtindex.o editcall.o
 AOBJS=		bwashm.o  kopen.o fastmap.o
-PROG=		bwa2.o
+PROG=		bwa2
 INCLUDES=	
 LIBS=		-lm -lz -lpthread
 SUBDIRS=	.
+LDFLAGS=
 
 ifeq ($(shell uname -s),Linux)
 	LIBS += -lrt
@@ -23,8 +24,8 @@ endif
 
 all:$(PROG)
 
-bwa2.o:libbwa.a $(AOBJS) main.o
-		$(CC) -r $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa $(LIBS)
+bwa2:libbwa.a $(AOBJS) main.o
+		$(CC) $(CFLAGS) $(LDFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa $(LIBS)
 
 bwamem-lite:libbwa.a example.o
 		$(CC) $(CFLAGS) $(DFLAGS) example.o -o $@ -L. -lbwa $(LIBS)
