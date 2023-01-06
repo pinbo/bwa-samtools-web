@@ -332,7 +332,7 @@ int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, kh
         break;
       }
   }
-  free(ff);
+
   // SA information
   char *sa_chrom = NULL;
   char *sa_strand = NULL;
@@ -353,11 +353,13 @@ int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, kh
   }
   char *mate_chrom = ff[6]; // = means on the same chromosome
   int mapq = atoi(ff[4]); // mapping quality
+  free(ff);
   char *target_chrom = NULL; // the correct chromosome based on mate or SA
   if (mapq == 0 && strcmp(mate_chrom, "=") != 0 && strstr(ks->s, "MQ:i") != NULL)
     target_chrom = mate_chrom;
   else if (mapq == 0 && sa_mapq > 0 && strcmp(chrom, sa_chrom) != 0)
     target_chrom = sa_chrom;
+  //fprintf(stderr, "Read is %s\nmate_chrom is %s\nsa_chrom is %s\nchrom is %s\ntarget_chrom is %s\n", read_id, mate_chrom, sa_chrom, chrom, target_chrom);
   if (target_chrom != NULL && xa_info != NULL){ // target chromosome needs to change and XA:Z tag is present
     int nXA; // number of multi mapped regions in XA tag
     char **ffxa = splitsub(xa_info, ";", &nXA);
@@ -382,6 +384,8 @@ int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, kh
     // free strings
     free(ffxa);
   }
+  // check
+  //fprintf(stderr, "Corrected chrom is %s\n", chrom);
   // cigar_info r = split_cigar(cigar);
   // SNPs and small indels
   khint_t k;
