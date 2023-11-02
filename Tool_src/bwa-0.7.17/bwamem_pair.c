@@ -246,13 +246,18 @@ void mem_aln2sam(const mem_opt_t *opt, const bntseq_t *bns, kstring_t *str, bseq
 void mem_reorder_primary5(int T, mem_alnreg_v *a);
 
 #define raw_mapq(diff, a) ((int)(6.02 * (diff) / (a) + .499))
-
+void myswap (mem_alnreg_t *p1, mem_alnreg_t *p2) {
+	mem_alnreg_t temp = *p1;
+	*p1 = *p2;
+	*p2 = temp;
+}
 int mem_sam_pe(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, const mem_pestat_t pes[4], uint64_t id, bseq1_t s[2], mem_alnreg_v a[2])
 {
 	extern int mem_mark_primary_se(const mem_opt_t *opt, int n, mem_alnreg_t *a, int64_t id);
 	extern int mem_approx_mapq_se(const mem_opt_t *opt, const mem_alnreg_t *a);
 	extern void mem_reg2sam(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, bseq1_t *s, mem_alnreg_v *a, int extra_flag, const mem_aln_t *m);
 	extern char **mem_gen_alt(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, const mem_alnreg_v *a, int l_query, const char *query);
+	extern void myswap (mem_alnreg_t *p1, mem_alnreg_t *p2);
 
 	int n = 0, i, j, z[2], o, subo, n_sub, extra_flag = 1, n_pri[2], n_aa[2];
 	kstring_t str;
@@ -279,6 +284,30 @@ int mem_sam_pe(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, co
 	if (opt->flag & MEM_F_PRIMARY5) {
 		mem_reorder_primary5(opt->T, &a[0]);
 		mem_reorder_primary5(opt->T, &a[1]);
+	}
+	// JZ reorder if the 2 reads are not in the same chromosome
+	if (n_pri[0] && n_pri[1] && a[0].a[0].score >= opt->T && a[1].a[0].score >= opt->T && (a[0].a[0].rid != a[1].a[0].rid)){
+		int j = 0, k = 1;
+		if (a[0].a[0].sub == a[0].a[0].score || a[1].a[0].sub == a[1].a[0].score){
+			if (a[1].a[0].sub == a[1].a[0].score) j = 1, k = 0; // 2nd read has mapping quality 0
+			for (i=0; i < a[j].n; i++){
+				if (a[j].a[i].rid == a[k].a[0].rid && a[j].a[i].score == a[j].a[0].score) {
+					int sub_n = a[j].a[0].sub_n;
+					int secondary_all = a[j].a[0].secondary_all;
+					int secondary = a[j].a[0].secondary;
+					a[j].a[0].secondary_all = a[j].a[i].secondary_all;
+					a[j].a[0].secondary = a[j].a[i].secondary;
+					a[j].a[0].sub = a[j].a[i].sub;
+					a[j].a[0].sub_n = a[j].a[i].sub_n;
+					a[j].a[i].secondary_all = secondary_all;
+					a[j].a[i].secondary = secondary;
+					//a[j].a[i].sub = a[j].a[0].score;
+					a[j].a[i].sub_n = sub_n;
+					myswap(&a[j].a[0], &a[j].a[i]);
+					break;
+				} 
+			}
+		}
 	}
 	if (opt->flag&MEM_F_NOPAIRING) goto no_pairing;
 	// pairing single-end hits
@@ -333,7 +362,7 @@ int mem_sam_pe(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, co
 		}
 		if (!(opt->flag & MEM_F_ALL)) {
 			for (i = 0; i < 2; ++i)
-				XA[i] = mem_gen_alt(opt, bns, pac, &a[i], s[i].l_seq, s[i].seq);
+				XA[i] = mem_gen_alt(opt, bns, pac, &a[i], s[i].l_seq, s[i].seq); // JZ: create XA tag string
 		} else XA[0] = XA[1] = 0;
 		// write SAM
 		for (i = 0; i < 2; ++i) {
