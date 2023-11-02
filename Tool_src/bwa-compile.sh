@@ -15,6 +15,7 @@ make clean
 
 emmake make bwa2 CC=emcc AR=emar CFLAGS="-O2 -msse -msse2 -msimd128 -s USE_ZLIB=1" LDFLAGS="-s FORCE_FILESYSTEM=1 -s EXPORTED_RUNTIME_METHODS=[\"callMain\"] -s ALLOW_MEMORY_GROWTH=1" # -s ERROR_ON_UNDEFINED_SYMBOLS=0"
 # then change bwa2 to bwa2.js
+
 # simple version: not working as above although I have changed the makefile
 #emmake make bwa2 LDFLAGS="-s USE_ZLIB=1 -s FORCE_FILESYSTEM=1 -s EXPORTED_RUNTIME_METHODS=[\"callMain\"] -s ALLOW_MEMORY_GROWTH=1 -s ERROR_ON_UNDEFINED_SYMBOLS=0 -O2"
 
@@ -37,3 +38,4 @@ git diff 122146e0086857630d40e216a21280711482d899 da7615d98affd2567f49a098614509
 # update:
 - 2023-01-03: add mate mapping quality (MQ) in the output
 - 2022-05-10: add exactSNP as `bwa call` and editcall as `bwa editcall`
+- 2023-11-02: correct wrong location of multimap reads: 8558a70797e3e10835d2025fefb00a572f851b60
