@@ -301,7 +301,7 @@ int mem_sam_pe(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, co
 					a[j].a[0].sub_n = a[j].a[i].sub_n;
 					a[j].a[i].secondary_all = secondary_all;
 					a[j].a[i].secondary = secondary;
-					//a[j].a[i].sub = a[j].a[0].score;
+					a[j].a[i].sub = a[j].a[0].score;
 					a[j].a[i].sub_n = sub_n;
 					myswap(&a[j].a[0], &a[j].a[i]);
 					break;
