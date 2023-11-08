@@ -1,0 +1,440 @@
+diff --git a/Tool_src/bwa-0.7.17/Makefile b/Tool_src/bwa-0.7.17/Makefile
+index 7151435..9cf86a6 100644
+--- a/Tool_src/bwa-0.7.17/Makefile
++++ b/Tool_src/bwa-0.7.17/Makefile
+@@ -1,16 +1,13 @@
+-CC=			gcc
++CC=			emcc
+ #CC=			clang --analyze
+-CFLAGS=		-g -Wall -Wno-unused-function -O2
++CFLAGS=		-g -Wall -Wno-unused-function -O2 -msse -msse2 -msimd128
+ WRAP_MALLOC=-DUSE_MALLOC_WRAPPERS
+-AR=			ar
++AR=			emar
+ DFLAGS=		-DHAVE_PTHREAD $(WRAP_MALLOC)
+ LOBJS=		utils.o kthread.o kstring.o ksw.o bwt.o bntseq.o bwa.o bwamem.o bwamem_pair.o bwamem_extra.o malloc_wrap.o \
+ 			QSufSort.o bwt_gen.o rope.o rle.o is.o bwtindex.o
+-AOBJS=		bwashm.o bwase.o bwaseqio.o bwtgap.o bwtaln.o bamlite.o \
+-			bwape.o kopen.o pemerge.o maxk.o \
+-			bwtsw2_core.o bwtsw2_main.o bwtsw2_aux.o bwt_lite.o \
+-			bwtsw2_chain.o fastmap.o bwtsw2_pair.o
+-PROG=		bwa
++AOBJS=		bwashm.o  kopen.o fastmap.o
++PROG=		bwa2.o
+ INCLUDES=	
+ LIBS=		-lm -lz -lpthread
+ SUBDIRS=	.
+@@ -26,8 +23,8 @@ endif
+ 
+ all:$(PROG)
+ 
+-bwa:libbwa.a $(AOBJS) main.o
+-		$(CC) $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa $(LIBS)
++bwa2.o:libbwa.a $(AOBJS) main.o
++		$(CC) -r $(CFLAGS) $(DFLAGS) $(AOBJS) main.o -o $@ -L. -lbwa -Lnewlibs -lexactSNP -Lnewlibs -leditcall $(LIBS)
+ 
+ bwamem-lite:libbwa.a example.o
+ 		$(CC) $(CFLAGS) $(DFLAGS) example.o -o $@ -L. -lbwa $(LIBS)
+diff --git a/Tool_src/bwa-0.7.17/bwa.c b/Tool_src/bwa-0.7.17/bwa.c
+index 75ccdf4..11091b1 100644
+--- a/Tool_src/bwa-0.7.17/bwa.c
++++ b/Tool_src/bwa-0.7.17/bwa.c
+@@ -377,7 +377,7 @@ int bwa_idx2mem(bwaidx_t *idx)
+  * SAM header routines *
+  ***********************/
+ 
+-void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line)
++void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line, FILE *stream)
+ {
+ 	int i, n_SQ = 0;
+ 	extern char *bwa_pg;
+@@ -390,14 +390,16 @@ void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line)
+ 	}
+ 	if (n_SQ == 0) {
+ 		for (i = 0; i < bns->n_seqs; ++i) {
+-			err_printf("@SQ\tSN:%s\tLN:%d", bns->anns[i].name, bns->anns[i].len);
+-			if (bns->anns[i].is_alt) err_printf("\tAH:*\n");
+-			else err_fputc('\n', stdout);
++			// err_printf("@SQ\tSN:%s\tLN:%d", bns->anns[i].name, bns->anns[i].len);
++            err_fprintf(stream, "@SQ\tSN:%s\tLN:%d", bns->anns[i].name, bns->anns[i].len);
++			if (bns->anns[i].is_alt) err_fprintf(stream, "\tAH:*\n");
++			// else err_fputc('\n', stdout);
++            else err_fprintf(stream, "\n");
+ 		}
+ 	} else if (n_SQ != bns->n_seqs && bwa_verbose >= 2)
+ 		fprintf(stderr, "[W::%s] %d @SQ lines provided with -H; %d sequences in the index. Continue anyway.\n", __func__, n_SQ, bns->n_seqs);
+-	if (hdr_line) err_printf("%s\n", hdr_line);
+-	if (bwa_pg) err_printf("%s\n", bwa_pg);
++	if (hdr_line) err_fprintf(stream, "%s\n", hdr_line);
++	if (bwa_pg) err_fprintf(stream, "%s\n", bwa_pg);
+ }
+ 
+ static char *bwa_escape(char *s)
+diff --git a/Tool_src/bwa-0.7.17/bwa.h b/Tool_src/bwa-0.7.17/bwa.h
+index aa21725..6d9663a 100644
+--- a/Tool_src/bwa-0.7.17/bwa.h
++++ b/Tool_src/bwa-0.7.17/bwa.h
+@@ -58,7 +58,7 @@ extern "C" {
+ 	int bwa_idx2mem(bwaidx_t *idx);
+ 	int bwa_mem2idx(int64_t l_mem, uint8_t *mem, bwaidx_t *idx);
+ 
+-	void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line);
++	void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line, FILE *stream);
+ 	char *bwa_set_rg(const char *s);
+ 	char *bwa_insert_header(const char *s, char *hdr);
+ 
+diff --git a/Tool_src/bwa-0.7.17/examples/.gitignore b/Tool_src/bwa-0.7.17/examples/.gitignore
+new file mode 100644
+index 0000000..e714a15
+--- /dev/null
++++ b/Tool_src/bwa-0.7.17/examples/.gitignore
+@@ -0,0 +1,9 @@
++*.bam
++*.bai
++*.fai
++*.glf*
++*.pileup*
++calDepth
++ex1*.rg
++ex1.bcf
++ex1.vcf
+diff --git a/Tool_src/bwa-0.7.17/examples/toy.fa b/Tool_src/bwa-0.7.17/examples/toy.fa
+new file mode 100644
+index 0000000..afe990a
+--- /dev/null
++++ b/Tool_src/bwa-0.7.17/examples/toy.fa
+@@ -0,0 +1,4 @@
++>ref
++AGCATGTTAGATAAGATAGCTGTGCTAGTAGGCAGTCAGCGCCAT
++>ref2
++aggttttataaaacaattaagtctacagagcaactacgcg
+diff --git a/Tool_src/bwa-0.7.17/fastmap.c b/Tool_src/bwa-0.7.17/fastmap.c
+index 41c29cb..3142591 100644
+--- a/Tool_src/bwa-0.7.17/fastmap.c
++++ b/Tool_src/bwa-0.7.17/fastmap.c
+@@ -19,6 +19,7 @@ extern unsigned char nst_nt4_table[256];
+ void *kopen(const char *fn, int *_fd);
+ int kclose(void *a);
+ void kt_pipeline(int n_threads, void *(*func)(void*, int, void*), void *shared_data, int n_steps);
++FILE *outsam = 0;
+ 
+ typedef struct {
+ 	kseq_t *ks, *ks2;
+@@ -86,7 +87,11 @@ static void *process(void *shared, int step, void *_data)
+ 		return data;
+ 	} else if (step == 2) {
+ 		for (i = 0; i < data->n_seqs; ++i) {
+-			if (data->seqs[i].sam) err_fputs(data->seqs[i].sam, stdout);
++			if (data->seqs[i].sam) // err_fputs(data->seqs[i].sam, stdout);
++            {
++                if (outsam) err_fputs(data->seqs[i].sam, outsam);
++                else err_fputs(data->seqs[i].sam, stdout);
++            }
+ 			free(data->seqs[i].name); free(data->seqs[i].comment);
+ 			free(data->seqs[i].seq); free(data->seqs[i].qual); free(data->seqs[i].sam);
+ 		}
+@@ -123,6 +128,7 @@ int main_mem(int argc, char *argv[])
+ 	void *ko = 0, *ko2 = 0;
+ 	mem_pestat_t pes[4];
+ 	ktp_aux_t aux;
++    outsam = 0; // reset it to 0
+ 
+ 	memset(&aux, 0, sizeof(ktp_aux_t));
+ 	memset(pes, 0, 4 * sizeof(mem_pestat_t));
+@@ -139,7 +145,7 @@ int main_mem(int argc, char *argv[])
+ 		else if (c == 'B') opt->b = atoi(optarg), opt0.b = 1;
+ 		else if (c == 'T') opt->T = atoi(optarg), opt0.T = 1;
+ 		else if (c == 'U') opt->pen_unpaired = atoi(optarg), opt0.pen_unpaired = 1;
+-		else if (c == 't') opt->n_threads = atoi(optarg), opt->n_threads = opt->n_threads > 1? opt->n_threads : 1;
++		else if (c == 't') opt->n_threads = 1; //atoi(optarg), opt->n_threads = opt->n_threads > 1? opt->n_threads : 1;
+ 		else if (c == 'P') opt->flag |= MEM_F_NOPAIRING;
+ 		else if (c == 'a') opt->flag |= MEM_F_ALL;
+ 		else if (c == 'p') opt->flag |= MEM_F_PE | MEM_F_SMARTPE;
+@@ -159,7 +165,7 @@ int main_mem(int argc, char *argv[])
+ 		else if (c == 's') opt->split_width = atoi(optarg), opt0.split_width = 1;
+ 		else if (c == 'G') opt->max_chain_gap = atoi(optarg), opt0.max_chain_gap = 1;
+ 		else if (c == 'N') opt->max_chain_extend = atoi(optarg), opt0.max_chain_extend = 1;
+-		else if (c == 'o' || c == 'f') xreopen(optarg, "wb", stdout);
++		else if (c == 'o' || c == 'f') outsam = xopen(optarg, "w"); // xreopen(optarg, "wb", stdout);
+ 		else if (c == 'W') opt->min_chain_weight = atoi(optarg), opt0.min_chain_weight = 1;
+ 		else if (c == 'y') opt->max_mem_intv = atol(optarg), opt0.max_mem_intv = 1;
+ 		else if (c == 'C') aux.copy_comment = 1;
+@@ -355,9 +361,15 @@ int main_mem(int argc, char *argv[])
+ 			opt->flag |= MEM_F_PE;
+ 		}
+ 	}
+-	bwa_print_sam_hdr(aux.idx->bns, hdr_line);
++    if (outsam) bwa_print_sam_hdr(aux.idx->bns, hdr_line, outsam);
++	else bwa_print_sam_hdr(aux.idx->bns, hdr_line, stdout);
+ 	aux.actual_chunk_size = fixed_chunk_size > 0? fixed_chunk_size : opt->chunk_size * opt->n_threads;
+-	kt_pipeline(no_mt_io? 1 : 2, process, &aux, 3);
++	// kt_pipeline(no_mt_io? 1 : 2, process, &aux, 3);
++    kt_pipeline(1, process, &aux, 3);
++    if (outsam){
++        err_fflush(outsam);
++        err_fclose(outsam);
++    }
+ 	free(hdr_line);
+ 	free(opt);
+ 	bwa_idx_destroy(aux.idx);
+diff --git a/Tool_src/bwa-0.7.17/kthread.c b/Tool_src/bwa-0.7.17/kthread.c
+index 780de19..d534748 100644
+--- a/Tool_src/bwa-0.7.17/kthread.c
++++ b/Tool_src/bwa-0.7.17/kthread.c
+@@ -43,21 +43,22 @@ static void *ktf_worker(void *data)
+ 	}
+ 	while ((i = steal_work(w->t)) >= 0)
+ 		w->t->func(w->t->data, i, w - w->t->w);
+-	pthread_exit(0);
++	// pthread_exit(0); // have to be commented
+ }
+ 
+ void kt_for(int n_threads, void (*func)(void*,long,int), void *data, long n)
+ {
+ 	int i;
+ 	kt_for_t t;
+-	pthread_t *tid;
++	// pthread_t *tid;
+ 	t.func = func, t.data = data, t.n_threads = n_threads, t.n = n;
+ 	t.w = (ktf_worker_t*)alloca(n_threads * sizeof(ktf_worker_t));
+-	tid = (pthread_t*)alloca(n_threads * sizeof(pthread_t));
++	// tid = (pthread_t*)alloca(n_threads * sizeof(pthread_t));
+ 	for (i = 0; i < n_threads; ++i)
+ 		t.w[i].t = &t, t.w[i].i = i;
+-	for (i = 0; i < n_threads; ++i) pthread_create(&tid[i], 0, ktf_worker, &t.w[i]);
+-	for (i = 0; i < n_threads; ++i) pthread_join(tid[i], 0);
++	// for (i = 0; i < n_threads; ++i) pthread_create(&tid[i], 0, ktf_worker, &t.w[i]);
++	// for (i = 0; i < n_threads; ++i) pthread_join(tid[i], 0);
++    ktf_worker(&t.w[0]);
+ }
+ 
+ /*****************
+@@ -89,7 +90,7 @@ static void *ktp_worker(void *data)
+ 	ktp_t *p = w->pl;
+ 	while (w->step < p->n_steps) {
+ 		// test whether we can kick off the job with this worker
+-		pthread_mutex_lock(&p->mutex);
++		// pthread_mutex_lock(&p->mutex);
+ 		for (;;) {
+ 			int i;
+ 			// test whether another worker is doing the same step
+@@ -99,19 +100,19 @@ static void *ktp_worker(void *data)
+ 					break;
+ 			}
+ 			if (i == p->n_workers) break; // no workers with smaller indices are doing w->step or the previous steps
+-			pthread_cond_wait(&p->cv, &p->mutex);
++			// pthread_cond_wait(&p->cv, &p->mutex);
+ 		}
+-		pthread_mutex_unlock(&p->mutex);
++		// pthread_mutex_unlock(&p->mutex);
+ 
+ 		// working on w->step
+ 		w->data = p->func(p->shared, w->step, w->step? w->data : 0); // for the first step, input is NULL
+ 
+ 		// update step and let other workers know
+-		pthread_mutex_lock(&p->mutex);
++		// pthread_mutex_lock(&p->mutex);
+ 		w->step = w->step == p->n_steps - 1 || w->data? (w->step + 1) % p->n_steps : p->n_steps;
+ 		if (w->step == 0) w->index = p->index++;
+-		pthread_cond_broadcast(&p->cv);
+-		pthread_mutex_unlock(&p->mutex);
++		// pthread_cond_broadcast(&p->cv);
++		// pthread_mutex_unlock(&p->mutex);
+ 	}
+ 	pthread_exit(0);
+ }
+@@ -119,7 +120,7 @@ static void *ktp_worker(void *data)
+ void kt_pipeline(int n_threads, void *(*func)(void*, int, void*), void *shared_data, int n_steps)
+ {
+ 	ktp_t aux;
+-	pthread_t *tid;
++	// pthread_t *tid;
+ 	int i;
+ 
+ 	if (n_threads < 1) n_threads = 1;
+@@ -128,8 +129,8 @@ void kt_pipeline(int n_threads, void *(*func)(void*, int, void*), void *shared_d
+ 	aux.func = func;
+ 	aux.shared = shared_data;
+ 	aux.index = 0;
+-	pthread_mutex_init(&aux.mutex, 0);
+-	pthread_cond_init(&aux.cv, 0);
++	// pthread_mutex_init(&aux.mutex, 0);
++	// pthread_cond_init(&aux.cv, 0);
+ 
+ 	aux.workers = (ktp_worker_t*)alloca(n_threads * sizeof(ktp_worker_t));
+ 	for (i = 0; i < n_threads; ++i) {
+@@ -138,10 +139,11 @@ void kt_pipeline(int n_threads, void *(*func)(void*, int, void*), void *shared_d
+ 		w->index = aux.index++;
+ 	}
+ 
+-	tid = (pthread_t*)alloca(n_threads * sizeof(pthread_t));
+-	for (i = 0; i < n_threads; ++i) pthread_create(&tid[i], 0, ktp_worker, &aux.workers[i]);
+-	for (i = 0; i < n_threads; ++i) pthread_join(tid[i], 0);
++	// tid = (pthread_t*)alloca(n_threads * sizeof(pthread_t));
++	// for (i = 0; i < n_threads; ++i) pthread_create(&tid[i], 0, ktp_worker, &aux.workers[i]);
++	// for (i = 0; i < n_threads; ++i) pthread_join(tid[i], 0);
++    ktp_worker(&aux.workers[0]);
+ 
+-	pthread_mutex_destroy(&aux.mutex);
+-	pthread_cond_destroy(&aux.cv);
++	// pthread_mutex_destroy(&aux.mutex);
++	// pthread_cond_destroy(&aux.cv);
+ }
+diff --git a/Tool_src/bwa-0.7.17/main.c b/Tool_src/bwa-0.7.17/main.c
+index 50ae755..c8e9b21 100644
+--- a/Tool_src/bwa-0.7.17/main.c
++++ b/Tool_src/bwa-0.7.17/main.c
+@@ -7,26 +7,30 @@
+ #define PACKAGE_VERSION "0.7.17-r1188"
+ #endif
+ 
+-int bwa_fa2pac(int argc, char *argv[]);
+-int bwa_pac2bwt(int argc, char *argv[]);
+-int bwa_bwtupdate(int argc, char *argv[]);
+-int bwa_bwt2sa(int argc, char *argv[]);
++// int bwa_fa2pac(int argc, char *argv[]);
++// int bwa_pac2bwt(int argc, char *argv[]);
++// int bwa_bwtupdate(int argc, char *argv[]);
++// int bwa_bwt2sa(int argc, char *argv[]);
+ int bwa_index(int argc, char *argv[]);
+-int bwt_bwtgen_main(int argc, char *argv[]);
++// int bwt_bwtgen_main(int argc, char *argv[]);
+ 
+-int bwa_aln(int argc, char *argv[]);
+-int bwa_sai2sam_se(int argc, char *argv[]);
+-int bwa_sai2sam_pe(int argc, char *argv[]);
++// int bwa_aln(int argc, char *argv[]);
++// int bwa_sai2sam_se(int argc, char *argv[]);
++// int bwa_sai2sam_pe(int argc, char *argv[]);
+ 
+-int bwa_bwtsw2(int argc, char *argv[]);
++// int bwa_bwtsw2(int argc, char *argv[]);
+ 
+-int main_fastmap(int argc, char *argv[]);
++// int main_fastmap(int argc, char *argv[]);
+ int main_mem(int argc, char *argv[]);
+-int main_shm(int argc, char *argv[]);
++// int main_shm(int argc, char *argv[]);
++
++// int main_pemerge(int argc, char *argv[]);
++// int main_maxk(int argc, char *argv[]);
++
++// call variations
++int main_snpcall(int argc,char ** argv);
++int main_editcall(int argc, char** args, char** env);
+ 
+-int main_pemerge(int argc, char *argv[]);
+-int main_maxk(int argc, char *argv[]);
+-	
+ static int usage()
+ {
+ 	fprintf(stderr, "\n");
+@@ -36,19 +40,21 @@ static int usage()
+ 	fprintf(stderr, "Usage:   bwa <command> [options]\n\n");
+ 	fprintf(stderr, "Command: index         index sequences in the FASTA format\n");
+ 	fprintf(stderr, "         mem           BWA-MEM algorithm\n");
+-	fprintf(stderr, "         fastmap       identify super-maximal exact matches\n");
+-	fprintf(stderr, "         pemerge       merge overlapping paired ends (EXPERIMENTAL)\n");
+-	fprintf(stderr, "         aln           gapped/ungapped alignment\n");
+-	fprintf(stderr, "         samse         generate alignment (single ended)\n");
+-	fprintf(stderr, "         sampe         generate alignment (paired ended)\n");
+-	fprintf(stderr, "         bwasw         BWA-SW for long queries\n");
+-	fprintf(stderr, "\n");
+-	fprintf(stderr, "         shm           manage indices in shared memory\n");
+-	fprintf(stderr, "         fa2pac        convert FASTA to PAC format\n");
+-	fprintf(stderr, "         pac2bwt       generate BWT from PAC\n");
+-	fprintf(stderr, "         pac2bwtgen    alternative algorithm for generating BWT\n");
+-	fprintf(stderr, "         bwtupdate     update .bwt to the new format\n");
+-	fprintf(stderr, "         bwt2sa        generate SA from BWT and Occ\n");
++    fprintf(stderr, "         call          call SNPs with exactSNP\n");
++    fprintf(stderr, "         editcall      call indels and inversions with editcall\n");
++	// fprintf(stderr, "         fastmap       identify super-maximal exact matches\n");
++	// fprintf(stderr, "         pemerge       merge overlapping paired ends (EXPERIMENTAL)\n");
++	// fprintf(stderr, "         aln           gapped/ungapped alignment\n");
++	// fprintf(stderr, "         samse         generate alignment (single ended)\n");
++	// fprintf(stderr, "         sampe         generate alignment (paired ended)\n");
++	// fprintf(stderr, "         bwasw         BWA-SW for long queries\n");
++	// fprintf(stderr, "\n");
++	// fprintf(stderr, "         shm           manage indices in shared memory\n");
++	// fprintf(stderr, "         fa2pac        convert FASTA to PAC format\n");
++	// fprintf(stderr, "         pac2bwt       generate BWT from PAC\n");
++	// fprintf(stderr, "         pac2bwtgen    alternative algorithm for generating BWT\n");
++	// fprintf(stderr, "         bwtupdate     update .bwt to the new format\n");
++	// fprintf(stderr, "         bwt2sa        generate SA from BWT and Occ\n");
+ 	fprintf(stderr, "\n");
+ 	fprintf(stderr,
+ "Note: To use BWA, you need to first index the genome with `bwa index'.\n"
+@@ -58,7 +64,7 @@ static int usage()
+ 	return 1;
+ }
+ 
+-int main(int argc, char *argv[])
++int main(int argc, char *argv[], char** env)
+ {
+ 	extern char *bwa_pg;
+ 	int i, ret;
+@@ -69,23 +75,27 @@ int main(int argc, char *argv[])
+ 	for (i = 1; i < argc; ++i) ksprintf(&pg, " %s", argv[i]);
+ 	bwa_pg = pg.s;
+ 	if (argc < 2) return usage();
+-	if (strcmp(argv[1], "fa2pac") == 0) ret = bwa_fa2pac(argc-1, argv+1);
+-	else if (strcmp(argv[1], "pac2bwt") == 0) ret = bwa_pac2bwt(argc-1, argv+1);
+-	else if (strcmp(argv[1], "pac2bwtgen") == 0) ret = bwt_bwtgen_main(argc-1, argv+1);
+-	else if (strcmp(argv[1], "bwtupdate") == 0) ret = bwa_bwtupdate(argc-1, argv+1);
+-	else if (strcmp(argv[1], "bwt2sa") == 0) ret = bwa_bwt2sa(argc-1, argv+1);
+-	else if (strcmp(argv[1], "index") == 0) ret = bwa_index(argc-1, argv+1);
+-	else if (strcmp(argv[1], "aln") == 0) ret = bwa_aln(argc-1, argv+1);
+-	else if (strcmp(argv[1], "samse") == 0) ret = bwa_sai2sam_se(argc-1, argv+1);
+-	else if (strcmp(argv[1], "sampe") == 0) ret = bwa_sai2sam_pe(argc-1, argv+1);
+-	else if (strcmp(argv[1], "bwtsw2") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
+-	else if (strcmp(argv[1], "dbwtsw") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
+-	else if (strcmp(argv[1], "bwasw") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
+-	else if (strcmp(argv[1], "fastmap") == 0) ret = main_fastmap(argc-1, argv+1);
++    optind = 1; opterr = 1; optopt = 0; // Need to reset opt variables so that it works properly when call main() multiple times
++	// if (strcmp(argv[1], "fa2pac") == 0) ret = bwa_fa2pac(argc-1, argv+1);
++	// else if (strcmp(argv[1], "pac2bwt") == 0) ret = bwa_pac2bwt(argc-1, argv+1);
++	// else if (strcmp(argv[1], "pac2bwtgen") == 0) ret = bwt_bwtgen_main(argc-1, argv+1);
++	// else if (strcmp(argv[1], "bwtupdate") == 0) ret = bwa_bwtupdate(argc-1, argv+1);
++	// else if (strcmp(argv[1], "bwt2sa") == 0) ret = bwa_bwt2sa(argc-1, argv+1);
++	// else 
++    if (strcmp(argv[1], "index") == 0) ret = bwa_index(argc-1, argv+1);
++	// else if (strcmp(argv[1], "aln") == 0) ret = bwa_aln(argc-1, argv+1);
++	// else if (strcmp(argv[1], "samse") == 0) ret = bwa_sai2sam_se(argc-1, argv+1);
++	// else if (strcmp(argv[1], "sampe") == 0) ret = bwa_sai2sam_pe(argc-1, argv+1);
++	// else if (strcmp(argv[1], "bwtsw2") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
++	// else if (strcmp(argv[1], "dbwtsw") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
++	// else if (strcmp(argv[1], "bwasw") == 0) ret = bwa_bwtsw2(argc-1, argv+1);
++	// else if (strcmp(argv[1], "fastmap") == 0) ret = main_fastmap(argc-1, argv+1);
+ 	else if (strcmp(argv[1], "mem") == 0) ret = main_mem(argc-1, argv+1);
+-	else if (strcmp(argv[1], "shm") == 0) ret = main_shm(argc-1, argv+1);
+-	else if (strcmp(argv[1], "pemerge") == 0) ret = main_pemerge(argc-1, argv+1);
+-	else if (strcmp(argv[1], "maxk") == 0) ret = main_maxk(argc-1, argv+1);
++    else if (strcmp(argv[1], "call") == 0) ret = main_snpcall(argc-1, argv+1);
++    else if (strcmp(argv[1], "editcall") == 0) ret = main_editcall(argc-1, argv+1, env);
++	// else if (strcmp(argv[1], "shm") == 0) ret = main_shm(argc-1, argv+1);
++	// else if (strcmp(argv[1], "pemerge") == 0) ret = main_pemerge(argc-1, argv+1);
++	// else if (strcmp(argv[1], "maxk") == 0) ret = main_maxk(argc-1, argv+1);
+ 	else {
+ 		fprintf(stderr, "[main] unrecognized command '%s'\n", argv[1]);
+ 		return 1;
+diff --git a/Tool_src/bwa-0.7.17/newlibs/libeditcall.a b/Tool_src/bwa-0.7.17/newlibs/libeditcall.a
+new file mode 100644
+index 0000000..9527b2c
+Binary files /dev/null and b/Tool_src/bwa-0.7.17/newlibs/libeditcall.a differ
+diff --git a/Tool_src/bwa-0.7.17/newlibs/libexactSNP.a b/Tool_src/bwa-0.7.17/newlibs/libexactSNP.a
+new file mode 100644
+index 0000000..043bc87
+Binary files /dev/null and b/Tool_src/bwa-0.7.17/newlibs/libexactSNP.a differ
+diff --git a/Tool_src/bwa-0.7.17/rle.h b/Tool_src/bwa-0.7.17/rle.h
+index 0d59484..4f8946d 100644
+--- a/Tool_src/bwa-0.7.17/rle.h
++++ b/Tool_src/bwa-0.7.17/rle.h
+@@ -30,7 +30,7 @@ extern "C" {
+  *** 43+3 codec ***
+  ******************/
+ 
+-const uint8_t rle_auxtab[8];
++extern const uint8_t rle_auxtab[8];
+ 
+ #define RLE_MIN_SPACE 18
+ #define rle_nptr(block) ((uint16_t*)(block))
