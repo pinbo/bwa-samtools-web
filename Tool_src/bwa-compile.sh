@@ -1,7 +1,7 @@
 # need to install emsdk
 # https://emscripten.org/docs/getting_started/downloads.html
 # if the latest version is not working, install 3.1.0
-./emsdk install 3.1.0
+# ./emsdk install 3.1.0
 ./emsdk activate 3.1.0
 source "/home/junli/GitHub/emsdk/emsdk_env.sh"
 
@@ -39,3 +39,4 @@ git diff 122146e0086857630d40e216a21280711482d899 da7615d98affd2567f49a098614509
 - 2023-01-03: add mate mapping quality (MQ) in the output
 - 2022-05-10: add exactSNP as `bwa call` and editcall as `bwa editcall`
 - 2023-11-02: correct wrong location of multimap reads: 8558a70797e3e10835d2025fefb00a572f851b60
+- 2024-03-03: add -q (min mapping quality) for editcall: 772a1f8019b4d636036f1a6e65ca951594b10e79
