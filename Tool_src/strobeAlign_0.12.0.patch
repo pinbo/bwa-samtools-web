@@ -1,0 +1,200 @@
+diff --git a/src/cmdline.hpp b/src/cmdline.hpp
+index acb9e0b..1de07a6 100644
+--- a/src/cmdline.hpp
++++ b/src/cmdline.hpp
+@@ -6,7 +6,7 @@
+ #include <utility>
+ 
+ struct CommandLineOptions {
+-    int n_threads { 3 };
++    int n_threads { 1 };
+     int chunk_size { 10000 };
+ 
+     // Input/output
+diff --git a/src/dumpstrobes.cpp b/src/dumpstrobes.cpp
+index 4a8a1d8..cd73ec0 100644
+--- a/src/dumpstrobes.cpp
++++ b/src/dumpstrobes.cpp
+@@ -156,7 +156,7 @@ int run_dumpstrobes(int argc, char **argv) {
+     } else if (seeds) {
+         float top_filter_fraction = 0.0002;
+         int bits = -1;  // autodetermine
+-        int n_threads = threads ? args::get(threads) : 8;
++        int n_threads = 1; //threads ? args::get(threads) : 8;
+         StrobemerIndex index(references, index_parameters, bits);
+         index.populate(top_filter_fraction, n_threads);
+         for (size_t i = 0; i < index.size(); ++i) {
+diff --git a/src/index.cpp b/src/index.cpp
+index ceb4ffc..39c2f8a 100644
+--- a/src/index.cpp
++++ b/src/index.cpp
+@@ -12,7 +12,7 @@
+ #include <algorithm>
+ #include "pdqsort/pdqsort.h"
+ #include <iostream>
+-#include <thread>
++// #include <thread>
+ #include <atomic>
+ #include "io.hpp"
+ #include "timer.hpp"
+@@ -40,30 +40,42 @@ uint64_t count_randstrobes(const std::string& seq, const IndexParameters& parame
+     }
+ }
+ 
+-std::vector<uint64_t> count_all_randstrobes(const References& references, const IndexParameters& parameters, size_t n_threads) {
+-    std::vector<std::thread> workers;
++void function1(const References& references, const IndexParameters& parameters, std::vector<uint64_t>& counts) {
+     std::atomic_size_t ref_index{0};
++    while (true) {
++        size_t j = ref_index.fetch_add(1);
++        if (j >= references.size()) {
++            break;
++        }
++        counts[j] = count_randstrobes(references.sequences[j], parameters);
++    }
++}
++
++std::vector<uint64_t> count_all_randstrobes(const References& references, const IndexParameters& parameters, size_t n_threads) {
++    // std::vector<std::thread> workers;
++    // std::atomic_size_t ref_index{0};
+ 
+     std::vector<uint64_t> counts;
+     counts.assign(references.size(), 0);
+-
+-    for (size_t i = 0; i < n_threads; ++i) {
+-        workers.push_back(
+-            std::thread(
+-                [&ref_index](const References& references, const IndexParameters& parameters, std::vector<uint64_t>& counts) {
+-                    while (true) {
+-                        size_t j = ref_index.fetch_add(1);
+-                        if (j >= references.size()) {
+-                            break;
+-                        }
+-                        counts[j] = count_randstrobes(references.sequences[j], parameters);
+-                    }
+-                }, std::ref(references), std::ref(parameters), std::ref(counts))
+-        );
+-    }
+-    for (auto& worker : workers) {
+-        worker.join();
+-    }
++    function1(std::ref(references), std::ref(parameters), std::ref(counts));
++
++    // for (size_t i = 0; i < n_threads; ++i) {
++    //     workers.push_back(
++    //         std::thread(
++    //             [&ref_index](const References& references, const IndexParameters& parameters, std::vector<uint64_t>& counts) {
++    //                 while (true) {
++    //                     size_t j = ref_index.fetch_add(1);
++    //                     if (j >= references.size()) {
++    //                         break;
++    //                     }
++    //                     counts[j] = count_randstrobes(references.sequences[j], parameters);
++    //                 }
++    //             }, std::ref(references), std::ref(parameters), std::ref(counts))
++    //     );
++    // }
++    // for (auto& worker : workers) {
++    //     worker.join();
++    // }
+ 
+     return counts;
+ }
+@@ -250,12 +262,12 @@ void StrobemerIndex::assign_all_randstrobes(const std::vector<uint64_t>& randstr
+         offset += randstrobe_counts[ref_index];
+     }
+ 
+-    std::vector<std::thread> workers;
++    // std::vector<std::thread> workers;
+     std::atomic_size_t ref_index{0};
+-    for (size_t i = 0; i < n_threads; ++i) {
+-        workers.push_back(
+-            std::thread(
+-                [&]() {
++    // for (size_t i = 0; i < n_threads; ++i) {
++    //     workers.push_back(
++    //         std::thread(
++    //             [&]() {
+                     while (true) {
+                         size_t j = ref_index.fetch_add(1);
+                         if (j >= references.size()) {
+@@ -263,12 +275,12 @@ void StrobemerIndex::assign_all_randstrobes(const std::vector<uint64_t>& randstr
+                         }
+                         assign_randstrobes(j, offsets[j]);
+                     }
+-                })
+-        );
+-    }
+-    for (auto& worker : workers) {
+-        worker.join();
+-    }
++    //             })
++    //     );
++    // }
++    // for (auto& worker : workers) {
++    //     worker.join();
++    // }
+ }
+ 
+ /*
+diff --git a/src/main.cpp b/src/main.cpp
+index 158e495..3370863 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -5,7 +5,7 @@
+ #include <sstream>
+ #include <algorithm>
+ #include <numeric>
+-#include <thread>
++// #include <thread>
+ #include <cassert>
+ #include <iomanip>
+ #include <chrono>
+@@ -289,21 +289,22 @@ int run_strobealign(int argc, char **argv) {
+ 
+     OutputBuffer output_buffer(out);
+ 
+-    std::vector<std::thread> workers;
++    // std::vector<std::thread> workers;
+     std::vector<int> worker_done(opt.n_threads);  // each thread sets its entry to 1 when it’s done
+-    for (int i = 0; i < opt.n_threads; ++i) {
+-        std::thread consumer(perform_task, std::ref(input_buffer), std::ref(output_buffer),
+-            std::ref(log_stats_vec[i]), std::ref(worker_done[i]), std::ref(aln_params),
++    // for (int i = 0; i < opt.n_threads; ++i) {
++    //     std::thread consumer(perform_task, std::ref(input_buffer), std::ref(output_buffer),
++        perform_task(std::ref(input_buffer), std::ref(output_buffer),
++            std::ref(log_stats_vec[0]), std::ref(worker_done[0]), std::ref(aln_params),
+             std::ref(map_param), std::ref(index_parameters), std::ref(references),
+             std::ref(index), std::ref(opt.read_group_id));
+-        workers.push_back(std::move(consumer));
+-    }
+-    if (opt.show_progress && isatty(2)) {
+-        show_progress_until_done(worker_done, log_stats_vec);
+-    }
+-    for (auto& worker : workers) {
+-        worker.join();
+-    }
++    //     workers.push_back(std::move(consumer));
++    // }
++    // if (opt.show_progress && isatty(2)) {
++    //     show_progress_until_done(worker_done, log_stats_vec);
++    // }
++    // for (auto& worker : workers) {
++    //     worker.join();
++    // }
+     logger.info() << "Done!\n";
+ 
+     AlignmentStatistics tot_statistics;
+diff --git a/src/pc.hpp b/src/pc.hpp
+index 703de20..bc32e1b 100644
+--- a/src/pc.hpp
++++ b/src/pc.hpp
+@@ -1,7 +1,7 @@
+ #ifndef STROBEALIGN_PC_HPP
+ #define STROBEALIGN_PC_HPP
+ 
+-#include <thread>
++// #include <thread>
+ #include <condition_variable>
+ #include <mutex>
+ #include <iostream>
