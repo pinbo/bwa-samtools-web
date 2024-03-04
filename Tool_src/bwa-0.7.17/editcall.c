@@ -304,7 +304,7 @@ int * parse_cigar(char *cigar, int ref_pos, int same_strand, size_t read_len){
 
 
 // fn parse_line (line: &str, map: &mut HashMap<String, isize>, no_small_indels: bool, debug: bool) 
-int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, khash_t(dep) *dh, int no_snp_call){
+int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, khash_t(dep) *dh, int no_snp_call, int min_mq){
   int n, i;
   // char *line = ks->s;
   char **ff = splitsub(ks->s, "\t", &n);
@@ -312,11 +312,12 @@ int parse_line(kstring_t *ks, khash_t(str) *h, int debug, khash_t(fasta) *fh, kh
   int flag = atoi(ff[1]);
   char *chrom = ff[2];
   int pos  = atoi(ff[3]) - 1; // 0 based
+  int mq = atoi(ff[4]); // mapping quality
   char *cigar  = ff[5];
   char *read_seq= ff[9];
   size_t read_len = strlen(read_seq);
   char *strand = flag & 0x10 ? "-" : "+";
-  if (strcmp(cigar, "*") == 0 ) { // no mapping
+  if (strcmp(cigar, "*") == 0 || mq < min_mq ) { // no mapping or mapping quality less than the threshold
     free(ff);
     return 0;
   }
@@ -510,6 +511,7 @@ int main_editcall (int argc, char **argv)
 {
 #endif
   int min_cov = 1;
+  int min_mq = 0;
   int debug = 0;
   int no_snp_call = 0;
   int c;
@@ -519,7 +521,7 @@ int main_editcall (int argc, char **argv)
 
   opterr = 0;
 
-  while ((c = getopt (argc, argv, "bdnc:f:o:")) != -1)
+  while ((c = getopt (argc, argv, "bdnc:f:o:q:")) != -1)
     switch (c)
       {
       case 'd':
@@ -534,10 +536,13 @@ int main_editcall (int argc, char **argv)
       case 'c':
         min_cov = atoi(optarg);
         break;
-    case 'f':
+      case 'q':
+        min_mq = atoi(optarg);
+        break;
+      case 'f':
         fasta_file = optarg;
         break;
-    case 'o':
+      case 'o':
         outfile = optarg;
         break;
       case '?':
@@ -573,6 +578,7 @@ int main_editcall (int argc, char **argv)
         "  -b no header          do not print header \n"
         "  -d debug              print extra information for debugging \n"
         "  -c coverage [int]     minimum coverage for a variant (defualt 1)\n"
+        "  -q mapping quality [int]     minimum mapping quality for a read to count in when calling variants (defualt 0)\n"
         "  -f fasta file name    your reference sequences\n"
         "  -o output file name   output file name (default: stdout)\n");
         return 1;
@@ -604,7 +610,7 @@ int main_editcall (int argc, char **argv)
     for (ks.l = 0; kgetline(&ks, (kgets_func *)fgets, input) == 0; ks.l = 0){
       // printf("new line is %s\n",  ks.s);
       if (ks.s[0] == '@') continue; // skip headers
-      parse_line(&ks, h, debug, fh, dh, no_snp_call);
+      parse_line(&ks, h, debug, fh, dh, no_snp_call, min_mq);
     }
     fclose(input);
   }
