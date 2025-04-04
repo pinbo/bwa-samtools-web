@@ -5,7 +5,7 @@ WRAP_MALLOC=-DUSE_MALLOC_WRAPPERS
 AR=			emar
 DFLAGS=		-DHAVE_PTHREAD $(WRAP_MALLOC)
 LOBJS=		utils.o kthread.o kstring.o ksw.o bwt.o bntseq.o bwa.o bwamem.o bwamem_pair.o bwamem_extra.o malloc_wrap.o \
-			QSufSort.o bwt_gen.o rope.o rle.o is.o bwtindex.o editcall.o
+			QSufSort.o bwt_gen.o rope.o rle.o is.o bwtindex.o editcall.o count.o
 AOBJS=		bwashm.o  kopen.o fastmap.o
 PROG=		bwa2
 INCLUDES=	

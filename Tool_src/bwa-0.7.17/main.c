@@ -4,7 +4,7 @@
 #include "utils.h"
 
 #ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.7.17-r1188-JZv3.1"
+#define PACKAGE_VERSION "0.7.17-r1188-JZv4.0"
 #endif
 
 // int bwa_fa2pac(int argc, char *argv[]);
@@ -30,6 +30,7 @@ int main_mem(int argc, char *argv[]);
 // call variations
 // int main_snpcall(int argc,char ** argv);
 int main_editcall(int argc, char** args);
+int main_count (int argc, char **argv);
 
 static int usage()
 {
@@ -42,6 +43,7 @@ static int usage()
 	fprintf(stderr, "         mem           BWA-MEM algorithm\n");
     // fprintf(stderr, "         call          call SNPs with exactSNP\n");
     fprintf(stderr, "         editcall      call indels and inversions with editcall\n");
+	fprintf(stderr, "         count         count reads on each chromosomes in sam files\n");
 	// fprintf(stderr, "         fastmap       identify super-maximal exact matches\n");
 	// fprintf(stderr, "         pemerge       merge overlapping paired ends (EXPERIMENTAL)\n");
 	// fprintf(stderr, "         aln           gapped/ungapped alignment\n");
@@ -93,6 +95,7 @@ int main(int argc, char *argv[], char** env)
 	else if (strcmp(argv[1], "mem") == 0) ret = main_mem(argc-1, argv+1);
     // else if (strcmp(argv[1], "call") == 0) ret = main_snpcall(argc-1, argv+1);
     else if (strcmp(argv[1], "editcall") == 0) ret = main_editcall(argc-1, argv+1);
+	else if (strcmp(argv[1], "count") == 0) ret = main_count(argc-1, argv+1);
 	// else if (strcmp(argv[1], "shm") == 0) ret = main_shm(argc-1, argv+1);
 	// else if (strcmp(argv[1], "pemerge") == 0) ret = main_pemerge(argc-1, argv+1);
 	// else if (strcmp(argv[1], "maxk") == 0) ret = main_maxk(argc-1, argv+1);
