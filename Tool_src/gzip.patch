@@ -24,7 +24,7 @@
  
      z_suffix = Z_SUFFIX;
      z_len = strlen(z_suffix);
-+    printf("optind = %d; opterr = %d; optopt = %d\n", optind, opterr, optopt); //JZ: for multiple runs
++    fprintf(stderr, "optind = %d; opterr = %d; optopt = %d\n", optind, opterr, optopt); //JZ: for multiple runs
 +    optind = 1; //JZ: reset to 1 every run
      while (true) {
          int optc;
