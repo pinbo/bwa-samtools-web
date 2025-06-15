@@ -54,6 +54,7 @@ emmake make bcftools CC=emcc AR=emar \
     
 # change bcftools to bcftools.js
 
-# below just compile tabix NOT working
+# below just compile tabix, but you can just use bcftools tabix
+cd htslib-1.21
 emmake make tabix CC=emcc AR=emar     CFLAGS="-O2 -s USE_ZLIB=1 -s USE_BZIP2=1"     LDFLAGS="$EM_FLAGS -s ERROR_ON_UNDEFINED_SYMBOLS=0 -O2"
 
