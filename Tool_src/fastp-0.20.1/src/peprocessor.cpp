@@ -729,19 +729,19 @@ void PairEndProcessor::producerTask()
             data = new ReadPair*[PACK_SIZE];
             memset(data, 0, sizeof(ReadPair*)*PACK_SIZE);
             // if the consumer is far behind this producer, sleep and wait to limit memory usage
-            while(mRepo.writePos - mRepo.readPos > PACK_IN_MEM_LIMIT){
-                slept++;
-                usleep(1000);
-            }
+            // while(mRepo.writePos - mRepo.readPos > PACK_IN_MEM_LIMIT){
+            //     slept++;
+            //     usleep(1000);
+            // }
             readNum += count;
             // if the writer threads are far behind this producer, sleep and wait
             // check this only when necessary
-            if(readNum % (PACK_SIZE * PACK_IN_MEM_LIMIT) == 0 && mLeftWriter) {
-                while( (mLeftWriter && mLeftWriter->bufferLength() > PACK_IN_MEM_LIMIT) || (mRightWriter && mRightWriter->bufferLength() > PACK_IN_MEM_LIMIT) ){
-                    slept++;
-                    usleep(1000);
-                }
-            }
+            // if(readNum % (PACK_SIZE * PACK_IN_MEM_LIMIT) == 0 && mLeftWriter) {
+            //     while( (mLeftWriter && mLeftWriter->bufferLength() > PACK_IN_MEM_LIMIT) || (mRightWriter && mRightWriter->bufferLength() > PACK_IN_MEM_LIMIT) ){
+            //         slept++;
+            //         usleep(1000);
+            //     }
+            // }
             // reset count to 0
             count = 0;
             // re-evaluate split size

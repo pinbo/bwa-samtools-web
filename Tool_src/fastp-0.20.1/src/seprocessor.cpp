@@ -427,20 +427,20 @@ void SingleEndProcessor::producerTask()
             data = new Read*[PACK_SIZE];
             memset(data, 0, sizeof(Read*)*PACK_SIZE);
             // if the consumer is far behind this producer, sleep and wait to limit memory usage
-            while(mRepo.writePos - mRepo.readPos > PACK_IN_MEM_LIMIT){
-                //cerr<<"sleep"<<endl;
-                slept++;
-                usleep(100);
-            }
+            // while(mRepo.writePos - mRepo.readPos > PACK_IN_MEM_LIMIT){
+            //     //cerr<<"sleep"<<endl;
+            //     slept++;
+            //     usleep(100);
+            // }
             readNum += count;
             // if the writer threads are far behind this producer, sleep and wait
             // check this only when necessary
-            if(readNum % (PACK_SIZE * PACK_IN_MEM_LIMIT) == 0 && mLeftWriter) {
-                while(mLeftWriter->bufferLength() > PACK_IN_MEM_LIMIT) {
-                    slept++;
-                    usleep(1000);
-                }
-            }
+            // if(readNum % (PACK_SIZE * PACK_IN_MEM_LIMIT) == 0 && mLeftWriter) {
+            //     while(mLeftWriter->bufferLength() > PACK_IN_MEM_LIMIT) {
+            //         slept++;
+            //         usleep(1000);
+            //     }
+            // }
             // reset count to 0
             count = 0;
             // re-evaluate split size
