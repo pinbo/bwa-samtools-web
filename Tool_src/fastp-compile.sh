@@ -25,4 +25,4 @@ emmake make TARGET="fastp.js" LIBS="-O3 -s USE_ZLIB=1 -s FORCE_FILESYSTEM=1 -s E
 cd fastp-0.20.1
 git log .
 # git diff old-git new-git folder
-git diff 012ac2b5557011a5b069b9ea73ca291d0dc7850c 43f1191843934777fd65239fec082b42a7a97c5c . > ../fastp-0.20.1.patch
+git diff 012ac2b5557011a5b069b9ea73ca291d0dc7850c 4439292303410fa6b77d04d695e5ab318eccae0f . > ../fastp-0.20.1.patch
