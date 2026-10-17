@@ -13,7 +13,7 @@ make clean
 
 
 
-emmake make bwa2 CC=emcc AR=emar CFLAGS="-O2 -msse -msse2 -msimd128 -s USE_ZLIB=1" LDFLAGS="-s FORCE_FILESYSTEM=1 -s EXPORTED_RUNTIME_METHODS=[\"callMain\"] -s ALLOW_MEMORY_GROWTH=1" # -s ERROR_ON_UNDEFINED_SYMBOLS=0"
+emmake make bwa2 CC=emcc AR=emar CFLAGS="-O2 -msse -msse2 -msimd128 -s USE_ZLIB=1" LDFLAGS="-s FORCE_FILESYSTEM=1 -s EXPORTED_RUNTIME_METHODS=[\"callMain\"] -s ALLOW_MEMORY_GROWTH=1 -s MAXIMUM_MEMORY=4GB" # -s ERROR_ON_UNDEFINED_SYMBOLS=0"
 # then change bwa2 to bwa2.js
 
 # simple version: not working as above although I have changed the makefile
