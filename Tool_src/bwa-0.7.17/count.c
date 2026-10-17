@@ -13,6 +13,7 @@
 
 // SAM flag bits
 #define SECONDARY_ALIGNMENT 0x100
+#define UNMAPPED_FLAG 0x4
 
 typedef struct {
     char name[MAX_CHROM_NAME_LEN];
@@ -48,6 +49,7 @@ int main_count (int argc, char **argv)
 
     // Parse command line options
     int opt;
+    optind = 1;  // reset getopt state so repeated calls (e.g. WASM) work
     while ((opt = getopt(argc, argv, "o:l:q:h")) != -1) {
         switch (opt) {
             case 'o':
@@ -100,8 +102,9 @@ int main_count (int argc, char **argv)
             continue;
         }
 
-        char line[1024];
-        while (fgets(line, sizeof(line), sam_file)) {
+        char *line = NULL;  // grown by getline, so any line length is handled
+        size_t line_cap = 0;
+        while (getline(&line, &line_cap, sam_file) != -1) {
             // Skip header lines (start with @)
             if (line[0] == '@') continue;
 
@@ -135,6 +138,13 @@ int main_count (int argc, char **argv)
             char *cigar = strtok(NULL, "\t");
             if (!cigar) continue;
 
+            // Unmapped reads (FLAG 0x4): RNAME may be the mate's chromosome, and
+            // MAPQ/CIGAR are 0/*, so detect by flag and bypass the filters.
+            if (flag & UNMAPPED_FLAG) {
+                if (count_unmapped) chrom_counts[0].counts[file_idx]++;
+                continue;
+            }
+
             // Skip if quality filter is not met
             if (mapq < min_qual) continue;
 
@@ -160,12 +170,6 @@ int main_count (int argc, char **argv)
             // Skip if length filter is not met
             if (align_length < min_length) continue;
 
-            // Handle unmapped reads
-            if (strcmp(chrom, "*") == 0) {
-                if (!count_unmapped) continue;
-                chrom = UNMAPPED_NAME;
-            }
-
             // Find or add chromosome in our list
             int found = 0;
             for (int i = 0; i < num_chromosomes; i++) {
@@ -188,6 +192,7 @@ int main_count (int argc, char **argv)
             }
         }
 
+        free(line);
         fclose(sam_file);
     }
 
